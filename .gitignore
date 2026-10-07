@@ -1,0 +1,11 @@
+.gradle/
+.gradle-user-home/
+.kotlin/
+.idea/
+*.iml
+local.properties
+**/build/
+*.apk
+*.aab
+# Cache local gerado pelo ambiente de execução Windows
+/%SystemDrive%/

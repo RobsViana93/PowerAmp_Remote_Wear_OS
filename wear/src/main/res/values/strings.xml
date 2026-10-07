@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Poweramp Remote</string>
+    <string name="screen_title">Poweramp
+Remote</string>
+    <string name="screen_description">Aplicativo do relógio</string>
+    <string name="stage_label">Preparação inicial</string>
+</resources>

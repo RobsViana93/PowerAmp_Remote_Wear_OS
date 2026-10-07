@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Poweramp Remote Companion</string>
+    <string name="screen_title">Poweramp Remote
+Companion</string>
+    <string name="screen_description">Aplicativo do celular</string>
+    <string name="stage_label">Preparação inicial</string>
+</resources>
