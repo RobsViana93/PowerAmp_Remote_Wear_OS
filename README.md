@@ -9,16 +9,16 @@ Dois aplicativos com telas de identificação. Ainda sem comunicação entre dis
 - mobile: Poweramp Remote Companion, para o celular.
 - wear: Poweramp Remote, para o relógio.
 
-## Ambiente verificado em 07/10/2026
+## Diagnóstico inicial em 07/10/2026
 
 Java Temurin 21.0.12.1 e Git encontrados. Android Studio e SDK não encontrados no registro e nos caminhos padrão. ANDROID_HOME, ANDROID_SDK_ROOT e JAVA_HOME não definidos. Gradle e adb não encontrados no PATH. Isso não exclui instalações em caminhos personalizados.
 
-Gradle 9.3.1 executou com sucesso usando Java 21. A tentativa de compilar os dois módulos falhou com SDK location not found. A compilação e a execução das telas precisam ser confirmadas; consulte [TESTING](docs/TESTING.md). Não há APK validado nesta etapa.
+Gradle 9.3.1 executou com sucesso. Após configurar o SDK, a validação revelou que Compose exige compileSdk 37. Esse ajuste foi aplicado aos dois módulos; assembleDebug e lintDebug passaram em ambos, com 0 erros de lint (6 avisos no mobile e 3 no wear). Os APKs foram gerados. A execução e a aparência das telas ainda precisam ser confirmadas; consulte [TESTING](docs/TESTING.md).
 
 ## Comece aqui
 
 1. Instale Android Studio estável compatível com AGP 9.1.1.
-2. Siga [DEVELOPMENT](docs/DEVELOPMENT.md) para instalar SDK 36, abrir a pasta e sincronizar.
+2. Siga [DEVELOPMENT](docs/DEVELOPMENT.md) para instalar SDK 37, abrir a pasta e sincronizar.
 3. Execute os comandos e os testes de [TESTING](docs/TESTING.md).
 
 ## Configuração fixada
@@ -28,7 +28,7 @@ Gradle 9.3.1 executou com sucesso usando Java 21. A tentativa de compilar os doi
 | Android Gradle Plugin | 9.1.1 |
 | Gradle Wrapper | 9.3.1 |
 | Kotlin integrado ao AGP e plugin Compose | 2.2.10 |
-| Compile/target SDK | 36 |
+| Compile SDK / target SDK | 37 / 36 |
 | Bytecode Java/Kotlin | 17 |
 | Compose BOM | 2026.09.00 |
 | Activity Compose | 1.13.0 |

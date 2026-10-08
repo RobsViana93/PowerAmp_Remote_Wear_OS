@@ -35,3 +35,7 @@ Não instale o APK mobile no relógio: poderia substituir o aplicativo wear por 
 Sem ViewModel, StateFlow, Coroutines, camadas de repositório ou serviços: não há estado dinâmico nem operações assíncronas do aplicativo nesta etapa. Esses conceitos serão ensinados quando necessários.
 
 Próximo marco: compilar, instalar e observar ambas as telas. Só após isso e autorização explícita começará a versão 0.1, com mensagem de teste e confirmação entre dispositivos.
+
+## Ajuste do SDK de compilação
+
+As bibliotecas Compose resolvidas pela BOM 2026.09.00 exigem compileSdk 37. Ambos os módulos usam esse nível para compilar; targetSdk permanece 36 e minSdk permanece 26 no celular e 30 no relógio. compileSdk disponibiliza APIs durante a compilação, targetSdk declara o nível de comportamento do Android adotado pelo aplicativo e minSdk define o sistema mínimo para instalação. A versão AGP 9.1.1 suporta API 37.

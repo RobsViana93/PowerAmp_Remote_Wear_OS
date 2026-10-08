@@ -2,7 +2,7 @@
 
 ## Estado
 
-Java foi executado e retornou Temurin 21.0.12.1. O comando gradlew.bat --version foi executado com sucesso: Gradle 9.3.1, Launcher JVM 21.0.12.1. O Kotlin 2.2.21 exibido nesse comando é o Kotlin interno do Gradle, não a versão do compilador do aplicativo. SDK e Studio não foram encontrados nos locais inspecionados. As interfaces ainda não foram executadas. Sem teste de comunicação ou Poweramp nesta etapa.
+Java foi executado e retornou Temurin 21.0.12.1. O comando gradlew.bat --version foi executado com sucesso: Gradle 9.3.1, Launcher JVM 21.0.12.1. O Kotlin 2.2.21 exibido nesse comando é o Kotlin interno do Gradle, não a versão do compilador do aplicativo. Na inspeção inicial, SDK e Studio não foram encontrados nos locais inspecionados. Na validação posterior, o SDK já estava configurado em local.properties, com as plataformas 36 e 37.0 instaladas. A compilação dos dois módulos e o lint passaram após ajustar compileSdk para 37. As interfaces ainda não foram executadas. Sem teste de comunicação ou Poweramp nesta etapa.
 
 ## Compilar
 
@@ -24,7 +24,7 @@ Ter arquivos Kotlin e Gradle não comprova que os APKs compilam. Só registre su
 
 1. Android Studio > Tools > Device Manager > Create Virtual Device.
 2. Escolha a categoria Wear OS e um perfil circular, por exemplo Wear OS Small Round.
-3. Baixe uma imagem estável Wear OS oferecida para esse perfil (API 30 ou superior). O SDK de compilação 36 não exige que o emulador rode API 36.
+3. Baixe uma imagem estável Wear OS oferecida para esse perfil (API 30 ou superior). O SDK de compilação 37 não exige que o emulador rode API 37.
 4. Conclua a criação e inicie o emulador. Se ele não iniciar, confira virtualização na BIOS e os requisitos de aceleração do Android Emulator.
 5. Selecione a configuração do módulo wear e o emulador Wear OS na barra de execução.
 6. Clique Run. A tela deve mostrar Poweramp Remote, Aplicativo do relógio e Preparação inicial.
@@ -80,3 +80,31 @@ Comando executado: gradlew.bat :mobile:assembleDebug :wear:assembleDebug --conso
 Os seis arquivos XML foram lidos pelo parser XML do PowerShell sem erro de sintaxe. Isso não substitui a validação Android pelo SDK.
 
 Instale o SDK seguindo DEVELOPMENT.md, configure local.properties e execute novamente os comandos desta página. Não foi instalado um SDK automaticamente nem foram aceitas licenças em nome do usuário.
+
+## Como compartilhar um erro do Gradle
+
+Copie desde FAILURE: Build failed with an exception, incluindo What went wrong e Caused by quando houver. Para salvar o diagnóstico em um arquivo na raiz do projeto:
+
+~~~powershell
+.\gradlew.bat :mobile:assembleDebug :wear:assembleDebug --console=plain --stacktrace *> erro-gradle.txt
+~~~
+
+Para investigar lint, substitua as tarefas por :mobile:lintDebug :wear:lintDebug. Informe o comando utilizado e compartilhe o trecho relevante ou indique o arquivo ao assistente.
+
+## Revalidação após configuração do SDK em 07/10/2026
+
+O erro reproduzido foi :mobile:checkDebugAarMetadata: nove bibliotecas Compose exigiam API 37, enquanto compileSdk estava em 36. A configuração inicial foi corrigida em mobile/build.gradle.kts e wear/build.gradle.kts, usando compileSdk 37; targetSdk e minSdk permaneceram iguais.
+
+Comando executado:
+
+~~~powershell
+.\gradlew.bat :mobile:assembleDebug :wear:assembleDebug :mobile:lintDebug :wear:lintDebug --console=plain
+~~~
+
+Resultado: BUILD SUCCESSFUL em 4m32s, código de saída 0. Ambos os APKs foram conferidos em build/outputs/apk/debug. Lint mobile: 0 erros e 6 avisos; lint wear: 0 erros e 3 avisos.
+
+Os avisos abordam targetSdk anterior ao mais recente, versões mais novas de ferramentas, regras modernas de backup, ícones ainda não definidos e taskAffinity da Activity Wear para a lista de recentes. Não foram suprimidos; não impedem esta compilação. A tarefa de empacotamento também informou que manteve os símbolos de libandroidx.graphics.path.so.
+
+Relatórios completos: mobile/build/reports/lint-results-debug.html e wear/build/reports/lint-results-debug.html.
+
+Esta validação confirma compilação e análise estática. Ainda é necessário abrir os aplicativos nos emuladores e verificar as telas, conforme o checklist acima. A versão 0.1 continua aguardando autorização.

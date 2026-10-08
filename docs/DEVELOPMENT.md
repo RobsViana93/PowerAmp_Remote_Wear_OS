@@ -9,7 +9,7 @@ Kotlin não precisa ser instalado separadamente. Gradle global também não: o W
 ## Instalar e abrir
 
 1. Baixe o Android Studio estável do [site oficial](https://developer.android.com/studio), usando uma versão que suporte AGP 9.1.1. Instale Android SDK e Android Virtual Device no assistente.
-2. No SDK Manager, instale Android SDK Platform 36. Em SDK Tools: Android SDK Build-Tools 36.0.0, Android SDK Platform-Tools, Android SDK Command-line Tools (latest) e Android Emulator. O NDK não é necessário.
+2. No SDK Manager, instale Android SDK Platform 37. Em SDK Tools: Android SDK Build-Tools 36.0.0, Android SDK Platform-Tools, Android SDK Command-line Tools (latest) e Android Emulator. O NDK não é necessário.
 3. Anote o Android SDK Location exibido. Se o caminho for diferente do exemplo, use o seu caminho.
 4. Em File > Open, abra C:\Users\rober\Poweramp_Remote. Já criamos o projeto; não é necessário executar o assistente New Project.
 5. Em Settings > Build, Execution, Deployment > Build Tools > Gradle, use a distribuição do Wrapper e um Gradle JDK compatível (o JDK 21 instalado, ou JDK 17/21 fornecido/configurado no Studio).
@@ -35,7 +35,7 @@ Para verificar o SDK (ajuste o caminho):
 
 ~~~powershell
 $sdkPath = 'C:\Users\rober\AppData\Local\Android\Sdk'
-Test-Path "$sdkPath\platforms\android-36\android.jar"
+Test-Path "$sdkPath\platforms\android-37.0\android.jar"
 Test-Path "$sdkPath\build-tools\36.0.0"
 & "$sdkPath\platform-tools\adb.exe" version
 ~~~

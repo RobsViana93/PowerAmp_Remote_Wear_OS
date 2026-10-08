@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.powerampremote.wear"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig {
         // Mesmo applicationId nos dois dispositivos para a futura Data Layer.
         applicationId = "com.powerampremote"
