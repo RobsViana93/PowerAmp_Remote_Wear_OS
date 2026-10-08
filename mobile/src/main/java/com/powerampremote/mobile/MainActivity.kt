@@ -1,9 +1,14 @@
 package com.powerampremote.mobile
 
 import android.os.Bundle
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.powerampremote.mobile.communication.CompanionStatus
+import com.powerampremote.mobile.communication.ReceiptStatus
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.SystemBarStyle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,7 +32,10 @@ import androidx.compose.material3.darkColorScheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+        )
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 IdentificationScreen()
@@ -36,9 +44,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** Tela estática desta etapa; não envia comandos nem consulta conexão. */
+/** Exibe o último evento de teste recebido neste processo do Companion. */
 @Composable
 private fun IdentificationScreen() {
+    val receipt by CompanionStatus.status.collectAsStateWithLifecycle()
+    val statusText = when (receipt) {
+        ReceiptStatus.WAITING -> R.string.receipt_waiting
+        ReceiptStatus.RECEIVED -> R.string.receipt_received
+        ReceiptStatus.ACK_SENT -> R.string.receipt_ack_sent
+        ReceiptStatus.ACK_FAILED -> R.string.receipt_ack_failed
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -52,15 +67,17 @@ private fun IdentificationScreen() {
         Text(
             text = stringResource(R.string.screen_title),
             style = MaterialTheme.typography.headlineSmall,
+            color = Color.White,
             textAlign = TextAlign.Center
         )
         Text(
             text = stringResource(R.string.screen_description),
             style = MaterialTheme.typography.bodyMedium,
+            color = Color.White,
             textAlign = TextAlign.Center
         )
         Text(
-            text = stringResource(R.string.stage_label),
+            text = stringResource(statusText),
             style = MaterialTheme.typography.labelMedium,
             color = Color(0xFF80CBC4),
             textAlign = TextAlign.Center

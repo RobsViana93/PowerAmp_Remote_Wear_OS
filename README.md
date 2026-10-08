@@ -2,9 +2,13 @@
 
 Projeto pessoal em Kotlin para Galaxy S23+ e Galaxy Watch 7. O áudio continuará no celular.
 
-## Etapa atual: preparação inicial (0.0.1)
+## Etapa atual: comunicação básica (0.1.0)
 
-Dois aplicativos com telas de identificação. Ainda sem comunicação entre dispositivos ou integração com Poweramp. A versão 0.1 só começará após autorização do usuário.
+A etapa inicial foi validada: o usuário confirmou que os aplicativos abriram no Wear OS e no celular. A versão 0.1 foi autorizada e implementa descoberta do Companion, envio de teste e confirmação correlacionada. Nenhuma integração com Poweramp.
+
+Leia [o guia da versão 0.1](docs/V0_1.md) para os conceitos, arquivos e testes de comunicação. O checkpoint anterior está no commit f0aa9d4.
+
+Validação local da versão 0.1: ambos os APKs compilados, dez testes de protocolo aprovados e lint sem erros (11 avisos no mobile, 6 no wear). As assinaturas coincidem. O Companion atualizado abriu no emulador e sua tela foi conferida. A confirmação entre dispositivos pareados e os testes de reconexão ainda estão pendentes.
 
 - mobile: Poweramp Remote Companion, para o celular.
 - wear: Poweramp Remote, para o relógio.
@@ -13,7 +17,7 @@ Dois aplicativos com telas de identificação. Ainda sem comunicação entre dis
 
 Java Temurin 21.0.12.1 e Git encontrados. Android Studio e SDK não encontrados no registro e nos caminhos padrão. ANDROID_HOME, ANDROID_SDK_ROOT e JAVA_HOME não definidos. Gradle e adb não encontrados no PATH. Isso não exclui instalações em caminhos personalizados.
 
-Gradle 9.3.1 executou com sucesso. Após configurar o SDK, a validação revelou que Compose exige compileSdk 37. Esse ajuste foi aplicado aos dois módulos; assembleDebug e lintDebug passaram em ambos, com 0 erros de lint (6 avisos no mobile e 3 no wear). Os APKs foram gerados. A execução e a aparência das telas ainda precisam ser confirmadas; consulte [TESTING](docs/TESTING.md).
+Gradle 9.3.1 executou com sucesso. Após configurar o SDK, a validação revelou que Compose exige compileSdk 37. Esse ajuste foi aplicado aos dois módulos; assembleDebug e lintDebug passaram em ambos, com 0 erros de lint (6 avisos no mobile e 3 no wear). Os APKs foram gerados. A abertura das telas iniciais foi confirmada pelo usuário; a comunicação da versão 0.1 precisa de validação entre dispositivos; consulte [TESTING](docs/TESTING.md).
 
 ## Comece aqui
 
@@ -34,6 +38,9 @@ Gradle 9.3.1 executou com sucesso. Após configurar o SDK, a validação revelou
 | Activity Compose | 1.13.0 |
 | Wear Compose Material 3 | 1.7.1 |
 | Android mínimo mobile / wear | API 26 / 30 |
+| Play services Wearable | 20.0.1 |
+| Lifecycle | 2.11.0 |
+| Coroutines | 1.10.2 |
 
 Escolhemos versões estáveis documentadas, sem buscar a atualização de cada ferramenta independentemente. JDK 21 instalado executa Gradle; o código gera bytecode 17. Wear Compose tem versão própria, fora da BOM.
 

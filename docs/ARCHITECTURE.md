@@ -1,6 +1,6 @@
 # Organização e decisões
 
-## Objetivo desta etapa
+## Histórico: objetivo da etapa inicial
 
 Preparar dois APKs independentes com interfaces estáticas. Cada módulo é uma parte do projeto que o Gradle compila separadamente. As pastas mobile e wear não significam que o relógio executa o código do celular.
 
@@ -30,7 +30,7 @@ Os dois módulos usam applicationId com.powerampremote, mas namespaces diferente
 
 Não instale o APK mobile no relógio: poderia substituir o aplicativo wear por ter o mesmo applicationId.
 
-## Escopo e próximos passos
+## Histórico: escopo da etapa inicial
 
 Sem ViewModel, StateFlow, Coroutines, camadas de repositório ou serviços: não há estado dinâmico nem operações assíncronas do aplicativo nesta etapa. Esses conceitos serão ensinados quando necessários.
 
@@ -39,3 +39,7 @@ Próximo marco: compilar, instalar e observar ambas as telas. Só após isso e a
 ## Ajuste do SDK de compilação
 
 As bibliotecas Compose resolvidas pela BOM 2026.09.00 exigem compileSdk 37. Ambos os módulos usam esse nível para compilar; targetSdk permanece 36 e minSdk permanece 26 no celular e 30 no relógio. compileSdk disponibiliza APIs durante a compilação, targetSdk declara o nível de comportamento do Android adotado pelo aplicativo e minSdk define o sistema mínimo para instalação. A versão AGP 9.1.1 suporta API 37.
+
+## Arquitetura da versão 0.1
+
+A versão 0.1 foi autorizada. As Activities agora exibem estado dinâmico: o relógio usa CommunicationViewModel com StateFlow e o celular observa CompanionStatus. WearMessageListener recebe testes via MessageClient e responde ao nó de origem. O serviço é exportado para Play services com um filtro de caminho específico. CapabilityClient descobre apenas Companions alcançáveis. Ainda não há Poweramp, DataClient ou Asset. Leia [V0_1.md](V0_1.md) para o contrato e a explicação de cada método.

@@ -1,8 +1,10 @@
-# Validação da etapa inicial
+# Validação das etapas
+
+**Etapa atual: versão 0.1.** Use o [roteiro de comunicação](V0_1.md#teste-no-android-studio), incluindo pareamento e confirmação de ida e volta. As seções da etapa inicial abaixo são histórico.
 
 ## Estado
 
-Java foi executado e retornou Temurin 21.0.12.1. O comando gradlew.bat --version foi executado com sucesso: Gradle 9.3.1, Launcher JVM 21.0.12.1. O Kotlin 2.2.21 exibido nesse comando é o Kotlin interno do Gradle, não a versão do compilador do aplicativo. Na inspeção inicial, SDK e Studio não foram encontrados nos locais inspecionados. Na validação posterior, o SDK já estava configurado em local.properties, com as plataformas 36 e 37.0 instaladas. A compilação dos dois módulos e o lint passaram após ajustar compileSdk para 37. As interfaces ainda não foram executadas. Sem teste de comunicação ou Poweramp nesta etapa.
+Java foi executado e retornou Temurin 21.0.12.1. O comando gradlew.bat --version foi executado com sucesso: Gradle 9.3.1, Launcher JVM 21.0.12.1. O Kotlin 2.2.21 exibido nesse comando é o Kotlin interno do Gradle, não a versão do compilador do aplicativo. Na inspeção inicial, SDK e Studio não foram encontrados nos locais inspecionados. Na validação posterior, o SDK já estava configurado em local.properties, com as plataformas 36 e 37.0 instaladas. A compilação dos dois módulos e o lint passaram após ajustar compileSdk para 37. O usuário confirmou que as telas iniciais abriram no Wear OS e no celular. Sem teste de comunicação ou Poweramp nesta etapa.
 
 ## Compilar
 
@@ -107,4 +109,22 @@ Os avisos abordam targetSdk anterior ao mais recente, versões mais novas de fer
 
 Relatórios completos: mobile/build/reports/lint-results-debug.html e wear/build/reports/lint-results-debug.html.
 
-Esta validação confirma compilação e análise estática. Ainda é necessário abrir os aplicativos nos emuladores e verificar as telas, conforme o checklist acima. A versão 0.1 continua aguardando autorização.
+Esta validação confirma compilação e análise estática. Ainda é necessário abrir os aplicativos nos emuladores e verificar as telas, conforme o checklist acima. A versão 0.1 foi autorizada posteriormente; seu roteiro está em [V0_1.md](V0_1.md).
+
+## Comunicação básica — versão 0.1
+
+A implementação e o roteiro estão em [V0_1.md](V0_1.md). A confirmação de abertura das telas anteriores não valida esta nova comunicação. Use dispositivos pareados e os dois APKs atualizados. Registre separadamente compilação, testes locais, lint e teste real de ida e volta.
+
+## Verificação executada da versão 0.1 em 07/10/2026
+
+- Checkpoint anterior: commit f0aa9d4, feito antes da implementação desta versão.
+- Compilação dos APKs e lint dos dois módulos: BUILD SUCCESSFUL. Após ajustar o contraste das telas, a validação conjunta foi repetida e terminou com código 0 em 1m26s.
+- Testes locais: cinco por módulo, dez ao todo, sem falhas ou erros. Os relatórios XML foram conferidos.
+- Lint: zero erros; onze avisos no mobile e seis no wear. Há avisos sobre versões, ícones, backup, recursos não usados e identificação de texto; a capability estática é consumida pelo Play services, embora o lint a classifique como não usada.
+- Paridade das duas cópias de TestProtocol: conferida, diferindo apenas pelo package.
+- Assinaturas dos dois APKs: verificadas com apksigner, com o mesmo certificado debug.
+- git diff --check: sem erros de espaços em branco.
+- Companion instalado no emulator-5554. A primeira abertura excedeu o prazo do ADB; depois a Activity ficou retomada, sem erro AndroidRuntime na saída consultada. A captura revelou baixo contraste no título, corrigido em ambos os módulos. Depois da atualização, a abertura retornou Status: ok e a captura final foi inspecionada: título, descrição e Aguardando teste do relógio legíveis, com barras do sistema adequadas. Captura local: mobile/build/reports/companion-v01.png.
+- Comunicação real, timeout em uma rota real, reconexão e recebimento com a tela do Companion fechada: ainda não executados. Somente um emulador de celular estava conectado; não havia relógio pareado disponível para o teste.
+
+Não considerar os testes locais como prova de funcionamento da Data Layer entre os aparelhos. A versão 0.2 aguarda validação desta etapa e nova autorização.

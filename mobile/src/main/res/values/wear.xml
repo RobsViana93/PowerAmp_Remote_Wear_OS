@@ -1,0 +1,6 @@
+<resources>
+    <!-- Anuncia que este dispositivo possui o receptor Companion v1. -->
+    <string-array name="android_wear_capabilities">
+        <item>poweramp_remote_companion_v1</item>
+    </string-array>
+</resources>

@@ -3,5 +3,19 @@
     <string name="screen_title">Poweramp
 Remote</string>
     <string name="screen_description">Aplicativo do relógio</string>
-    <string name="stage_label">Preparação inicial</string>
+    <string name="stage_label">Comunicação básica — v0.1</string>
+    <string name="connection_checking">Verificando conexão…</string>
+    <string name="connection_available">Companion acessível</string>
+    <string name="connection_unavailable">Celular indisponível ou Companion não instalado</string>
+    <string name="connection_error">Não foi possível verificar a conexão</string>
+    <string name="send_test">Testar</string>
+    <string name="refresh_connection">Atualizar</string>
+    <string name="test_idle">Toque em Testar para verificar a comunicação.</string>
+    <string name="test_sending">Enviando teste…</string>
+    <string name="test_waiting_ack">Mensagem enviada. Aguardando confirmação…</string>
+    <string name="test_confirmed">Confirmado: o celular recebeu o teste.</string>
+    <string name="test_no_phone">Nenhum Companion acessível. Atualize a conexão.</string>
+    <string name="test_failed">Falha no teste. Verifique a conexão e tente novamente.</string>
+    <string name="test_timeout">Sem confirmação no prazo. O recebimento não foi comprovado.</string>
+    <string name="test_cancelled">Teste interrompido ao sair da tela.</string>
 </resources>
