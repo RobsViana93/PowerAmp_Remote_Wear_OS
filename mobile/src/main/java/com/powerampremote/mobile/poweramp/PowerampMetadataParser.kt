@@ -6,6 +6,13 @@ import com.powerampremote.mobile.communication.NowPlayingProtocol
 /** Chaves e unidades conferidas em PowerampAPI.Track; pos é sempre extra de topo. */
 object PowerampMetadataParser {
     @Suppress("DEPRECATION")
+    fun realId(intent: Intent): Long? {
+        val extras = intent.extras
+        val value = if (extras?.containsKey("realId") == true) extras.get("realId")
+            else intent.getBundleExtra("track")?.get("realId")
+        return integer(value)?.takeIf { it > 0 }
+    }
+    @Suppress("DEPRECATION")
     fun parse(intent: Intent, at: Long): NowPlayingProtocol.Update {
         val extras = intent.extras
         val track = intent.getBundleExtra("track")

@@ -55,3 +55,9 @@ O estado persistido não é tratado como consulta atual. A observação de uma a
 PowerampMetadataParser adapta eventos de faixa/estado ao modelo de metadados. NowPlayingProtocol mantém o codec e as regras de atualização parcial; o novo campo now_playing_v3 acompanha o snapshot v2 no mesmo DataItem. A publicação captura ambos sob o mesmo monitor. O relógio impede exibir metadados de uma faixa anterior quando o estado já aponta para outra.
 
 O botão Atualizar solicita a consulta oficial POS_SYNC. PowerampPositionSync registra um receiver temporário com ContextCompat, espera até três segundos e confere se a referência da faixa permaneceu igual. Ao fim, remove o receiver. Não há polling, serviço permanente ou cálculo de uma posição estimada. Veja [V0_3.md](V0_3.md).
+
+## Arquitetura da versão 0.4
+
+NowPlayingScreen, na pasta presentation do wear, reúne a apresentação do player e o editor local da posição. Os diagnósticos anteriores continuam acessíveis em Detalhes e teste. VisualProtocol define seek em segundos e os resultados correlacionados; PowerampSeek verifica a referência da faixa, envia o comando oficial e consulta a posição posterior. A barra usa a última posição informada, sem ticker.
+
+AlbumArtPublisher lê a imagem pelo provedor oficial da capa atual, limita leitura e resolução e publica um Asset em um DataItem separado, com ID e horário de mudança da faixa. A publicação é serializada por Mutex. O relógio limpa a capa ao mudar de faixa e confere a associação antes e depois da decodificação. Estado e imagem podem chegar em qualquer ordem; o carregamento também consulta o cache sincronizado. Veja [V0_4.md](V0_4.md).

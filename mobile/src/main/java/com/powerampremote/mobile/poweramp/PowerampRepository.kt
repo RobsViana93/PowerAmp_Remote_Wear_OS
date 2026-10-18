@@ -18,6 +18,13 @@ import java.util.Base64
 object PowerampRepository {
     private val monitor = Object()
     private var restored = false
+    private var artRealId = -1L
+    data class ArtReference(val trackId: Long, val trackAt: Long, val realId: Long)
+
+    fun readArtReference(context: Context): ArtReference = synchronized(monitor) {
+        val player = read(context)
+        ArtReference(player.trackId, player.trackReportedAt, artRealId)
+    }
     private val mutableSnapshot = MutableStateFlow(Snapshot())
     val snapshot = mutableSnapshot.asStateFlow()
     private val mutableNowPlaying = MutableStateFlow(NowPlayingProtocol.Snapshot())
@@ -35,6 +42,7 @@ object PowerampRepository {
                     ?: NowPlayingProtocol.Snapshot()
             } catch (_: IllegalArgumentException) { NowPlayingProtocol.Snapshot() }
             restored = true
+            artRealId = context.getSharedPreferences("poweramp_state", Context.MODE_PRIVATE).getLong("art_real_id", -1)
         }
         mutableSnapshot.value
     }
@@ -78,10 +86,15 @@ object PowerampRepository {
                 before.copy(trackId = if (id > 0) id else -1, trackReportedAt = at)
             }
         }
-        if (before == after && metadataBefore == metadataAfter) return false
+        val realId = if (at >= metadataBefore.metadataAt) PowerampMetadataParser.realId(intent) else null
+        val nextRealId = realId ?: if (after.trackId != before.trackId ||
+            after.trackReportedAt != before.trackReportedAt) -1 else artRealId
+        if (before == after && metadataBefore == metadataAfter && nextRealId == artRealId) return false
+        artRealId = nextRealId
         mutableSnapshot.value = after
         mutableNowPlaying.value = metadataAfter
         context.getSharedPreferences("poweramp_state", Context.MODE_PRIVATE).edit()
+            .putLong("art_real_id", artRealId)
             .putString("snapshot", PlayerProtocol.encodeSnapshot(after).toString(Charsets.US_ASCII)).apply()
         saveNowPlaying(context)
         monitor.notifyAll()
@@ -127,5 +140,6 @@ object PowerampRepository {
                 NowPlayingProtocol.encode(mutableNowPlaying.value))
         }
         Wearable.getDataClient(context).putDataItem(request.asPutDataRequest().setUrgent()).await()
+        AlbumArtPublisher.publish(context)
     }
 }

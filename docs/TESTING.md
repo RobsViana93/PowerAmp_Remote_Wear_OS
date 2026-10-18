@@ -1,6 +1,6 @@
 # Validação das etapas
 
-**Etapa atual: versão 0.3.** Use o [roteiro de metadados e posição](V0_3.md#testar-no-ambiente-atual). O usuário aprovou os quatro controles da versão 0.2 nos emuladores com músicas. A matriz física da versão 0.2 continua útil para os cenários de conexão e processo ainda não documentados como executados. As seções anteriores permanecem como histórico.
+**Etapa atual: versão 0.4.** Use o [roteiro de capa, progresso e seek](V0_4.md#teste-nos-emuladores-atuais). O usuário confirmou os testes dos botões da versão 0.3 e autorizou a próxima etapa. A matriz física da versão 0.2 continua útil para os cenários de conexão e processo ainda não documentados como executados. As seções anteriores permanecem como histórico.
 
 ## Estado
 
@@ -170,3 +170,23 @@ Na execução inicial acima, não foram testados reprodução em Poweramp real, 
 - Ao encerrar a verificação foi enviado o comando oficial de pausa ao Poweramp.
 
 Permanecem pendentes a validação do usuário da versão 0.3, testes físicos no S23+/Watch 7, matriz completa de processos, reconexão e restrições de bateria. Os testes locais não substituem esses cenários. Siga [V0_3.md](V0_3.md) para repetir a verificação nos emuladores.
+
+Posteriormente, o usuário confirmou que todos os botões funcionaram na comunicação com o Poweramp e autorizou a versão 0.4. Essa aprovação não comprova automaticamente a matriz física, reconexão e restrições de bateria.
+
+## Versão 0.4 — validação executada em 18/10/2026
+
+- Comando final: `gradlew.bat :mobile:assembleDebug :wear:assembleDebug :mobile:testDebugUnitTest :wear:testDebugUnitTest :mobile:lintDebug :wear:lintDebug --console=plain`.
+- Resultado final: BUILD SUCCESSFUL em 47s; 102 tarefas, 18 executadas e 84 atualizadas. As verificações anteriores também passaram; a execução final inclui a proteção do realId contra eventos de metadados antigos.
+- Relatórios JUnit conferidos: 37 testes por módulo, 74 ao todo, sem falhas ou erros. São 15 de metadados, 10 de comandos v2, 5 do teste v1 e 7 do novo protocolo visual. Os novos casos verificam codecs, campos inválidos, duração desconhecida, fim da faixa, referência antiga e progresso limitado.
+- Lint: zero erros e 16 avisos por módulo. Relatórios locais: mobile/build/reports/lint-results-debug.html e wear/build/reports/lint-results-debug.html. Os avisos incluem recomendações de versões, recursos, ícones, backup e uso de extensões Kotlin; não foram suprimidos para obter esse resultado.
+- Instalação dos dois APKs nos emuladores retornou Success. As Activities abriram com Status: ok. Capturas foram inspecionadas e motivaram redução da capa/espaçamentos para mostrar os três controles na tela inicial e correção do contraste dos ícones.
+- Seek real: Teste-01 estava pausada em 0:04 de 1:00. No relógio, foram usados Ajustar posição, dois incrementos de +10s e Confirmar posição. O relógio exibiu Poweramp informou a posição solicitada e 0:24 / 1:00. A interface nativa do Poweramp confirmou 0:24 após sua recuperação descrita abaixo.
+- Capa real: a leitura inicial apenas da raiz do provedor retornou FileNotFoundException. O helper oficial foi consultado e a implementação corrigida para files/realId, sem presumir equivalência com id. Um novo evento nativo de faixa forneceu o identificador. A capa de Live at Roadburn chegou pelo Asset e foi conferida visualmente no relógio com Sub Specie Aeternitatis / AD NAUSEAM.
+- Próxima no novo layout do relógio mudou para Teste-01; a imagem anterior desapareceu e surgiu o indicador Sem capa disponível. O Companion registrou a nova faixa com realId 5. Na faixa com capa havia registrado realId 4.
+- Cancelamento: com Teste-01 em 0:00, foi aberto o editor, selecionado +10s e tocado Cancelar. O editor fechou; posição e horário persistidos continuaram iguais, sem novo seek.
+- Detalhes e teste abriu a tela de diagnósticos com Voltar e Companion acessível. A troca de mensagens v1 não foi repetida nesta execução.
+- Evidências locais ignoradas pelo Git: wear/build/reports/player-v04.png, wear/build/reports/player-v04-cover.png e mobile/build/reports/poweramp-v04-cover.png. As capturas do Poweramp são evidências do teste; não são recursos visuais distribuídos pelo aplicativo.
+
+Durante a investigação, o Android apresentou Poweramp isn't responding. O log am_anr registrou timeout de foco da interface do Poweramp; também havia um timeout separado do launcher. A opção Aguardar permitiu ler a posição 0:24, mas o aviso reapareceu. Após encerrar pelo diálogo e reabrir o Poweramp, a interface respondeu e os testes de biblioteca/capa prosseguiram. A causa não foi estabelecida; não atribuir o aviso ao Remote nem considerar esse cenário estabilizado. Registrar novamente se ocorrer na validação do usuário ou nos aparelhos físicos.
+
+Permanecem pendentes a aprovação do usuário da versão 0.4, fonte ampliada, matriz completa de desconexão/reconexão e processos, troca concorrente durante seek em integração e testes físicos no S23+/Watch 7. O teste local de referência antiga não substitui a simulação dessa corrida nos aparelhos. O roteiro está em [V0_4.md](V0_4.md).

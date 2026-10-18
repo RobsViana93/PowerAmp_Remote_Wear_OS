@@ -34,6 +34,7 @@ import java.util.Date
 import androidx.compose.ui.text.style.TextOverflow
 import com.powerampremote.wear.communication.NowPlayingProtocol
 import com.powerampremote.wear.communication.SyncNotice
+import com.powerampremote.wear.presentation.NowPlayingScreen
 
 /** A Activity apresenta a tela; o ViewModel mantém o estado da comunicação. */
 class MainActivity : ComponentActivity() {
@@ -45,8 +46,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             val state by communication.state.collectAsStateWithLifecycle()
             MaterialTheme {
-                CommunicationScreen(state, communication::sendTest, communication::refreshNowPlaying,
-                    communication::sendPlayerCommand)
+                NowPlayingScreen(state, communication::sendPlayerCommand, communication::refreshNowPlaying,
+                    communication::seekTo) {
+                    CommunicationScreen(state, communication::sendTest, communication::refreshNowPlaying,
+                        communication::sendPlayerCommand)
+                }
             }
         }
     }

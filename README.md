@@ -2,11 +2,15 @@
 
 Projeto pessoal em Kotlin para Galaxy S23+ e Galaxy Watch 7. O áudio continuará no celular.
 
-## Etapa atual: informações musicais (0.3.0)
+## Etapa atual: interface visual (0.4.0)
+
+O usuário aprovou os testes dos botões da versão 0.3 e autorizou a versão 0.4. A etapa atual acrescenta capa por Asset, barra da última posição informada, ajuste confirmado da posição e controles agrupados na tela circular. Consulte [o guia da versão 0.4](docs/V0_4.md) para conceitos, limitações e testes. Atualize os dois aplicativos.
+
+Validação da versão 0.4: APKs compilados, 74 testes aprovados e lint sem erros (16 avisos por módulo). Nos emuladores com Poweramp real, foram conferidos capa recebida, remoção da capa ao trocar para faixa sem imagem, Próxima pelo novo layout, seek de 0:04 para 0:24 e cancelamento do editor. O roteiro aguarda sua validação. Uma ocorrência de falta de resposta da interface do Poweramp foi registrada em [TESTING.md](docs/TESTING.md).
 
 A versão 0.2 foi aprovada pelo usuário após testes dos quatro botões com músicas no celular emulado. A versão 0.3 acrescenta título, artista, álbum, duração e posição informada. O botão Atualizar pode solicitar a posição pela API oficial POS_SYNC, sem polling contínuo. Consulte [o guia da versão 0.3](docs/V0_3.md).
 
-Validação da versão 0.3: APKs compilados, 60 testes aprovados e lint sem erros (14 avisos por módulo). Com Poweramp real nos emuladores, foram verificados metadados nos dois aplicativos, troca de faixa sem manter tags antigas e consulta de posição durante a reprodução. A posição permanece no último valor informado até um novo evento ou toque em Atualizar. O roteiro aguarda a validação do usuário.
+Validação da versão 0.3: APKs compilados, 60 testes aprovados e lint sem erros (14 avisos por módulo). Com Poweramp real nos emuladores, foram verificados metadados nos dois aplicativos, troca de faixa sem manter tags antigas e consulta de posição durante a reprodução. A posição permanece no último valor informado até um novo evento ou toque em Atualizar. O usuário confirmou os testes dos botões e autorizou a versão 0.4.
 
 A versão 0.1 foi aprovada pelo usuário após o teste de ida e volta nos emuladores. O commit dc2d2b9 registra sua aprovação e a autorização da próxima etapa.
 

@@ -15,7 +15,23 @@ import kotlinx.coroutines.withTimeout
 class WearMessageListener : WearableListenerService() {
     // O callback é serializado pelo serviço. Evita repetir um mesmo pedido nesta instância.
     private val completed = LinkedHashMap<String, PlayerProtocol.Result>()
+    private val completedSeeks = LinkedHashMap<String, Pair<VisualProtocol.Seek, VisualProtocol.Result>>()
     override fun onMessageReceived(event: MessageEvent) {
+        if (event.path == VisualProtocol.SEEK_PATH) {
+            val request = VisualProtocol.decode(event.data) ?: return
+            val key = "${event.sourceNodeId}:${request.id}"
+            val previous = completedSeeks[key]
+            if (previous != null && previous.first != request) return
+            val result = previous?.second ?: com.powerampremote.mobile.poweramp.PowerampSeek.execute(this, request)
+            completedSeeks[key] = request to result
+            if (completedSeeks.size > 32) completedSeeks.remove(completedSeeks.keys.first())
+            try {
+                runBlocking { withTimeout(3_000) { PowerampRepository.publish(this@WearMessageListener) } }
+                Tasks.await(Wearable.getMessageClient(this).sendMessage(event.sourceNodeId,
+                    VisualProtocol.RESULT_PATH, VisualProtocol.encodeResult(result)), 2, TimeUnit.SECONDS)
+            } catch (_: Exception) { /* O relógio limita a espera. */ }
+            return
+        }
         if (event.path == NowPlayingProtocol.REFRESH_PATH) {
             refreshPosition(event)
             return
@@ -51,7 +67,10 @@ class WearMessageListener : WearableListenerService() {
         val id = NowPlayingProtocol.decodeRefresh(event.data) ?: return
         try {
             val stage = PowerampPositionSync(this).request()
-            runBlocking { withTimeout(2_000) { PowerampRepository.publish(this@WearMessageListener) } }
+            runBlocking { withTimeout(3_000) {
+                PowerampRepository.publish(this@WearMessageListener)
+                com.powerampremote.mobile.poweramp.AlbumArtPublisher.publish(this@WearMessageListener, force = true)
+            } }
             Tasks.await(Wearable.getMessageClient(this).sendMessage(event.sourceNodeId,
                 NowPlayingProtocol.REFRESH_RESULT_PATH,
                 NowPlayingProtocol.encodeSyncResult(NowPlayingProtocol.SyncResult(id, stage))), 2, TimeUnit.SECONDS)

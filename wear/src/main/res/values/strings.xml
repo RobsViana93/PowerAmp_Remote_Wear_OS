@@ -1,4 +1,20 @@
 <resources>
+    <string name="visual_back">Voltar</string>
+    <string name="visual_connected">Celular conectado</string>
+    <string name="visual_disconnected">Sem conexão confirmada</string>
+    <string name="visual_cover">Capa do álbum</string>
+    <string name="visual_seek">Ajustar posição</string>
+    <string name="visual_seek_target">Ir para %1$s</string>
+    <string name="visual_seek_confirm">Confirmar posição</string>
+    <string name="visual_cancel">Cancelar</string>
+    <string name="visual_details">Detalhes e teste</string>
+    <string name="visual_busy">Aguardando o celular…</string>
+    <string name="visual_command_problem">Comando sem confirmação. Consulte Detalhes.</string>
+    <string name="visual_seek_confirmed">Poweramp informou a posição solicitada.</string>
+    <string name="visual_seek_requested">Ajuste solicitado; posição ainda não confirmada.</string>
+    <string name="visual_seek_stale">A faixa mudou. Ajuste a posição novamente.</string>
+    <string name="visual_seek_failed">Ajuste sem confirmação. Confira a conexão e atualize.</string>
+    <string name="visual_reported_position">Barra do último informe. Atualizar consulta a posição.</string>
     <string name="app_name">Poweramp Remote</string>
     <string name="screen_title">Poweramp
 Remote</string>
