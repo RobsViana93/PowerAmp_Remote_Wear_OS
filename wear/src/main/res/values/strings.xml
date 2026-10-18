@@ -18,4 +18,27 @@ Remote</string>
     <string name="test_failed">Falha no teste. Verifique a conexão e tente novamente.</string>
     <string name="test_timeout">Sem confirmação no prazo. O recebimento não foi comprovado.</string>
     <string name="test_cancelled">Teste interrompido ao sair da tela.</string>
+    <string name="player_unknown">Poweramp: estado ainda desconhecido</string>
+    <string name="player_playing">Último informe: reproduzindo</string>
+    <string name="player_paused">Último informe: pausado</string>
+    <string name="player_stopped">Último informe: parado</string>
+    <string name="player_report_time">Informado pelo celular em %1$s</string>
+    <string name="player_idle">Role para acessar os controles do Poweramp.</string>
+    <string name="player_sending">Enviando comando ao celular…</string>
+    <string name="player_waiting">Mensagem enviada. Aguardando o Companion…</string>
+    <string name="player_received">Comando recebido pelo Companion.</string>
+    <string name="player_requested">Comando solicitado ao Poweramp. Aguardando evento…</string>
+    <string name="player_state_observed">Poweramp informou o estado esperado após a solicitação.</string>
+    <string name="player_track_observed">Poweramp informou uma mudança de faixa após a solicitação.</string>
+    <string name="player_no_update">Comando solicitado, mas a alteração não foi confirmada. O último informe pode ser antigo.</string>
+    <string name="player_missing">Poweramp não instalado no celular.</string>
+    <string name="player_unsupported">A API de comandos do Poweramp não está disponível. Verifique a versão e se o aplicativo está habilitado.</string>
+    <string name="player_failed">Falha ao solicitar o comando. Verifique o celular.</string>
+    <string name="player_timeout">Sem resposta final do Companion. A execução não foi comprovada.</string>
+    <string name="player_cancelled">Espera interrompida. Um comando já enviado pode ter sido executado.</string>
+    <string name="player_update_companion">Verifique a conexão e atualize o Companion para a versão 0.2.</string>
+    <string name="player_play">Play</string>
+    <string name="player_pause">Pause</string>
+    <string name="player_next">Próxima</string>
+    <string name="player_previous">Anterior</string>
 </resources>

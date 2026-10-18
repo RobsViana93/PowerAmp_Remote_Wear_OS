@@ -8,4 +8,12 @@ Companion</string>
     <string name="receipt_received">Mensagem recebida do relógio</string>
     <string name="receipt_ack_sent">Mensagem recebida. Confirmação enviada ao relógio.</string>
     <string name="receipt_ack_failed">Mensagem recebida, mas não foi possível enviar a confirmação.</string>
+    <string name="player_unknown">Poweramp: estado ainda desconhecido</string>
+    <string name="player_playing">Último informe: reproduzindo</string>
+    <string name="player_paused">Último informe: pausado</string>
+    <string name="player_stopped">Último informe: parado</string>
+    <string name="player_report_time">Informado pelo celular em %1$s</string>
+    <string name="player_setup">Após atualizar o Companion, abra o Poweramp e faça um ciclo de Play/Pause para habilitar os eventos. Um informe guardado pode estar desatualizado.</string>
+    <string name="player_open">Abrir Poweramp</string>
+    <string name="player_open_failed">Não foi possível abrir o Poweramp. Verifique se ele está instalado.</string>
 </resources>

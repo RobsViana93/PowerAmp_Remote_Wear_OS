@@ -2,13 +2,17 @@
 
 Projeto pessoal em Kotlin para Galaxy S23+ e Galaxy Watch 7. O áudio continuará no celular.
 
-## Etapa atual: comunicação básica (0.1.0)
+## Etapa atual: primeira integração com Poweramp (0.2.0)
 
-A etapa inicial foi validada: o usuário confirmou que os aplicativos abriram no Wear OS e no celular. A versão 0.1 foi autorizada e implementa descoberta do Companion, envio de teste e confirmação correlacionada. Nenhuma integração com Poweramp.
+A versão 0.1 foi aprovada pelo usuário após o teste de ida e volta nos emuladores. O commit dc2d2b9 registra sua aprovação e a autorização da próxima etapa.
+
+A versão 0.2 adiciona Play, Pause, Próxima e Anterior pela API pública do Poweramp, eventos explícitos e sincronização do último estado informado. A validação de reprodução no S23+ e Watch 7 permanece necessária. Leia [o guia da versão 0.2](docs/V0_2.md).
+
+Validação local da versão 0.2: APKs compilados, 30 testes aprovados e lint sem erros (12 avisos no mobile e 14 no wear). Nos emuladores pareados, o pedido Play retornou corretamente Poweramp não instalado, e o teste básico de ida e volta continuou funcionando. Reprodução e eventos de uma instalação real do player ainda não foram validados.
 
 Leia [o guia da versão 0.1](docs/V0_1.md) para os conceitos, arquivos e testes de comunicação. O checkpoint anterior está no commit f0aa9d4.
 
-Validação local da versão 0.1: ambos os APKs compilados, dez testes de protocolo aprovados e lint sem erros (11 avisos no mobile, 6 no wear). As assinaturas coincidem. O Companion atualizado abriu no emulador e sua tela foi conferida. A confirmação entre dispositivos pareados e os testes de reconexão ainda estão pendentes.
+Validação da versão 0.1: ambos os APKs compilados, dez testes de protocolo aprovados e lint sem erros. As assinaturas coincidem. A troca de mensagem e confirmação nos emuladores foi executada com sucesso em 18/10/2026. Os cenários de reconexão e aparelhos físicos permanecem separados no roteiro de testes.
 
 - mobile: Poweramp Remote Companion, para o celular.
 - wear: Poweramp Remote, para o relógio.

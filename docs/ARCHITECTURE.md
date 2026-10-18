@@ -43,3 +43,9 @@ As bibliotecas Compose resolvidas pela BOM 2026.09.00 exigem compileSdk 37. Ambo
 ## Arquitetura da versão 0.1
 
 A versão 0.1 foi autorizada. As Activities agora exibem estado dinâmico: o relógio usa CommunicationViewModel com StateFlow e o celular observa CompanionStatus. WearMessageListener recebe testes via MessageClient e responde ao nó de origem. O serviço é exportado para Play services com um filtro de caminho específico. CapabilityClient descobre apenas Companions alcançáveis. Ainda não há Poweramp, DataClient ou Asset. Leia [V0_1.md](V0_1.md) para o contrato e a explicação de cada método.
+
+## Arquitetura da versão 0.2
+
+PowerampController traduz somente os quatro comandos permitidos para broadcasts explícitos ao receiver oficial do player. PowerampEventReceiver recebe eventos de estado e faixa; PowerampRepository mantém o último informe com horário e o publica via DataClient. Os pedidos e suas etapas usam MessageClient, com correlação por nó, UUID e comando. O teste v1 permanece disponível.
+
+O estado persistido não é tratado como consulta atual. A observação de uma alteração exige um evento novo em relação ao snapshot anterior; os broadcasts do Poweramp não oferecem correlação causal com nosso UUID. O Companion não inicia o serviço de reprodução nem abre Activities automaticamente em segundo plano. Há uma alternativa manual Abrir Poweramp no celular. Veja [V0_2.md](V0_2.md) para contrato, limitações e testes.

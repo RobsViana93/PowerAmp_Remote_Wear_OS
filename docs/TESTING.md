@@ -1,6 +1,6 @@
 # Validação das etapas
 
-**Etapa atual: versão 0.1.** Use o [roteiro de comunicação](V0_1.md#teste-no-android-studio), incluindo pareamento e confirmação de ida e volta. As seções da etapa inicial abaixo são histórico.
+**Etapa atual: versão 0.2.** Use a [matriz de integração com Poweramp](V0_2.md#teste-no-s23-e-watch-7). A versão 0.1 foi aprovada após uma troca de mensagem e confirmação nos emuladores; seu [roteiro de comunicação](V0_1.md#teste-no-android-studio) continua útil como diagnóstico. As seções anteriores permanecem como histórico.
 
 ## Estado
 
@@ -139,3 +139,19 @@ Não considerar os testes locais como prova de funcionamento da Data Layer entre
 - Permanecem pendentes os testes de desconexão/reconexão, ausência de confirmação e execução nos aparelhos físicos. Esta execução não comprova todos esses cenários.
 
 Em 18/10/2026, o usuário confirmou o teste aprovado e as alterações válidas, e autorizou o início da etapa seguinte. Os cenários adicionais acima permanecem identificados como pendentes.
+
+## Versão 0.2 — validação executada em 18/10/2026
+
+- Aprovação da versão 0.1 salva no commit dc2d2b9 antes da implementação seguinte.
+- API oficial consultada: maxmpz/powerampapi, PowerampAPI.java, Manifest do exemplo e APIReceiver.java. Implementação limitada aos quatro comandos e eventos de estado/faixa.
+- Comando executado: gradlew.bat :mobile:assembleDebug :wear:assembleDebug :mobile:testDebugUnitTest :wear:testDebugUnitTest :mobile:lintDebug :wear:lintDebug --console=plain.
+- Resultado final: BUILD SUCCESSFUL em 48s, código de saída 0. Foram 102 tarefas, 30 executadas e 72 atualizadas.
+- Relatórios JUnit conferidos: 10 testes de PlayerProtocol e 5 de TestProtocol por módulo; total de 30 testes, zero falhas e zero erros.
+- Lint: zero erros, 12 avisos no mobile e 14 no wear. Relatórios em mobile/build/reports/lint-results-debug.html e wear/build/reports/lint-results-debug.html.
+- APKs instalados nos dois emuladores com Success. Abertura das Activities retornou Status: ok em ambos.
+- Verificação de pacote no celular emulado não encontrou com.maxmpz.audioplayer. Pedido Play pelo relógio retornou Poweramp não instalado no celular, com estado ainda desconhecido.
+- Teste v1 repetido depois da atualização: Confirmado: o celular recebeu o teste.
+- Captura dos controles inspecionada em wear/build/reports/player-v02.png. A tela exige rolagem, e o emulador deve estar acordado para receber o toque.
+- git diff --check executado sem erros.
+
+Não executados: reprodução em Poweramp real, eventos reais de estado/faixa, sincronização disparada por esses eventos, testes dos três estados de processo e restrições da Samsung. Use a [matriz física da versão 0.2](V0_2.md#teste-no-s23-e-watch-7). Testes unitários com snapshots simulados não substituem esses cenários.

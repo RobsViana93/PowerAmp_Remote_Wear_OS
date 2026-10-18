@@ -27,11 +27,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.Button
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import com.powerampremote.mobile.poweramp.PowerampContract
+import com.powerampremote.mobile.poweramp.PowerampRepository
+import com.powerampremote.mobile.communication.PlayerProtocol
+import java.text.DateFormat
+import java.util.Date
 
 /** Ponto de entrada do aplicativo no celular. */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        PowerampRepository.read(applicationContext)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
@@ -47,6 +58,9 @@ class MainActivity : ComponentActivity() {
 /** Exibe o último evento de teste recebido neste processo do Companion. */
 @Composable
 private fun IdentificationScreen() {
+    val context = LocalContext.current
+    val player by PowerampRepository.snapshot.collectAsStateWithLifecycle()
+    var openFailed by remember { mutableStateOf(false) }
     val receipt by CompanionStatus.status.collectAsStateWithLifecycle()
     val statusText = when (receipt) {
         ReceiptStatus.WAITING -> R.string.receipt_waiting
@@ -82,5 +96,25 @@ private fun IdentificationScreen() {
             color = Color(0xFF80CBC4),
             textAlign = TextAlign.Center
         )
+        val stateText = when (player.state) {
+            PlayerProtocol.State.UNKNOWN -> R.string.player_unknown
+            PlayerProtocol.State.PLAYING -> R.string.player_playing
+            PlayerProtocol.State.PAUSED -> R.string.player_paused
+            PlayerProtocol.State.STOPPED -> R.string.player_stopped
+        }
+        Text(stringResource(stateText), color = Color.White, textAlign = TextAlign.Center)
+        if (player.reportedAt > 0) {
+            Text(stringResource(R.string.player_report_time,
+                DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(player.reportedAt))),
+                color = Color.White, textAlign = TextAlign.Center)
+        }
+        Text(stringResource(R.string.player_setup), color = Color.White, textAlign = TextAlign.Center)
+        Button(onClick = {
+            try {
+                val launch = context.packageManager.getLaunchIntentForPackage(PowerampContract.PACKAGE)
+                if (launch == null) openFailed = true else { context.startActivity(launch); openFailed = false }
+            } catch (_: RuntimeException) { openFailed = true }
+        }) { Text(stringResource(R.string.player_open)) }
+        if (openFailed) Text(stringResource(R.string.player_open_failed), color = Color.White)
     }
 }
