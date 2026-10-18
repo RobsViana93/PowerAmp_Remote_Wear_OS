@@ -128,3 +128,14 @@ A implementação e o roteiro estão em [V0_1.md](V0_1.md). A confirmação de a
 - Comunicação real, timeout em uma rota real, reconexão e recebimento com a tela do Companion fechada: ainda não executados. Somente um emulador de celular estava conectado; não havia relógio pareado disponível para o teste.
 
 Não considerar os testes locais como prova de funcionamento da Data Layer entre os aparelhos. A versão 0.2 aguarda validação desta etapa e nova autorização.
+
+## Teste de ida e volta nos emuladores em 18/10/2026
+
+- Dispositivos conectados: celular emulator-5554 e Wear OS emulator-5556.
+- Ao investigar o botão Testar, o relógio estava em modo de espera: dumpsys power informou mWakefulness=Dozing.
+- Após acordar o relógio e abrir o aplicativo, a inspeção da interface confirmou Companion acessível e o botão Testar com enabled=true e clickable=true.
+- Um toque no botão, seguido de rolagem para visualizar o resultado, exibiu: Confirmado: o celular recebeu o teste. Isso comprova uma troca de mensagem e confirmação entre os emuladores nessa execução.
+- Nenhum código foi alterado. Para repetir manualmente, acorde o emulador pelo botão de energia/lateral, abra o aplicativo e toque Testar com a tela ativa. Arraste para cima para ler o resultado abaixo do botão.
+- Permanecem pendentes os testes de desconexão/reconexão, ausência de confirmação e execução nos aparelhos físicos. Esta execução não comprova todos esses cenários.
+
+Em 18/10/2026, o usuário confirmou o teste aprovado e as alterações válidas, e autorizou o início da etapa seguinte. Os cenários adicionais acima permanecem identificados como pendentes.
