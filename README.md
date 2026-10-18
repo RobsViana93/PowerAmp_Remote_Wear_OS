@@ -2,13 +2,17 @@
 
 Projeto pessoal em Kotlin para Galaxy S23+ e Galaxy Watch 7. O áudio continuará no celular.
 
-## Etapa atual: primeira integração com Poweramp (0.2.0)
+## Etapa atual: informações musicais (0.3.0)
+
+A versão 0.2 foi aprovada pelo usuário após testes dos quatro botões com músicas no celular emulado. A versão 0.3 acrescenta título, artista, álbum, duração e posição informada. O botão Atualizar pode solicitar a posição pela API oficial POS_SYNC, sem polling contínuo. Consulte [o guia da versão 0.3](docs/V0_3.md).
+
+Validação da versão 0.3: APKs compilados, 60 testes aprovados e lint sem erros (14 avisos por módulo). Com Poweramp real nos emuladores, foram verificados metadados nos dois aplicativos, troca de faixa sem manter tags antigas e consulta de posição durante a reprodução. A posição permanece no último valor informado até um novo evento ou toque em Atualizar. O roteiro aguarda a validação do usuário.
 
 A versão 0.1 foi aprovada pelo usuário após o teste de ida e volta nos emuladores. O commit dc2d2b9 registra sua aprovação e a autorização da próxima etapa.
 
 A versão 0.2 adiciona Play, Pause, Próxima e Anterior pela API pública do Poweramp, eventos explícitos e sincronização do último estado informado. A validação de reprodução no S23+ e Watch 7 permanece necessária. Leia [o guia da versão 0.2](docs/V0_2.md).
 
-Validação local da versão 0.2: APKs compilados, 30 testes aprovados e lint sem erros (12 avisos no mobile e 14 no wear). Nos emuladores pareados, o pedido Play retornou corretamente Poweramp não instalado, e o teste básico de ida e volta continuou funcionando. Reprodução e eventos de uma instalação real do player ainda não foram validados.
+Validação local da versão 0.2: APKs compilados, 30 testes aprovados e lint sem erros (12 avisos no mobile e 14 no wear). Inicialmente foi testada a resposta de Poweramp ausente; depois o usuário instalou/preparou o player com músicas no emulador e confirmou os quatro controles funcionando. Testes físicos e de todos os estados de processo continuam separados.
 
 Leia [o guia da versão 0.1](docs/V0_1.md) para os conceitos, arquivos e testes de comunicação. O checkpoint anterior está no commit f0aa9d4.
 

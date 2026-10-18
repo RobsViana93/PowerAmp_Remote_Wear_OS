@@ -37,6 +37,7 @@ import com.powerampremote.mobile.poweramp.PowerampRepository
 import com.powerampremote.mobile.communication.PlayerProtocol
 import java.text.DateFormat
 import java.util.Date
+import com.powerampremote.mobile.communication.NowPlayingProtocol
 
 /** Ponto de entrada do aplicativo no celular. */
 class MainActivity : ComponentActivity() {
@@ -60,6 +61,7 @@ class MainActivity : ComponentActivity() {
 private fun IdentificationScreen() {
     val context = LocalContext.current
     val player by PowerampRepository.snapshot.collectAsStateWithLifecycle()
+    val metadata by PowerampRepository.nowPlaying.collectAsStateWithLifecycle()
     var openFailed by remember { mutableStateOf(false) }
     val receipt by CompanionStatus.status.collectAsStateWithLifecycle()
     val statusText = when (receipt) {
@@ -103,6 +105,17 @@ private fun IdentificationScreen() {
             PlayerProtocol.State.STOPPED -> R.string.player_stopped
         }
         Text(stringResource(stateText), color = Color.White, textAlign = TextAlign.Center)
+        if (NowPlayingProtocol.matchesTrack(metadata, player.trackId, player.trackReportedAt)) {
+            Text(metadata.title.ifBlank { stringResource(R.string.metadata_title_unknown) },
+                color = Color.White, textAlign = TextAlign.Center, style = MaterialTheme.typography.titleLarge)
+            Text(metadata.artist.ifBlank { stringResource(R.string.metadata_artist_unknown) },
+                color = Color.White, textAlign = TextAlign.Center)
+            Text(stringResource(R.string.metadata_album,
+                metadata.album.ifBlank { stringResource(R.string.metadata_album_unknown) }),
+                color = Color.White, textAlign = TextAlign.Center)
+            Text(stringResource(R.string.metadata_position, NowPlayingProtocol.formatTime(metadata.positionMs),
+                NowPlayingProtocol.formatTime(metadata.durationMs)), color = Color(0xFF80CBC4), textAlign = TextAlign.Center)
+        } else Text(stringResource(R.string.metadata_waiting), color = Color.White, textAlign = TextAlign.Center)
         if (player.reportedAt > 0) {
             Text(stringResource(R.string.player_report_time,
                 DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(player.reportedAt))),

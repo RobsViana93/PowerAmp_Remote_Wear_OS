@@ -11,6 +11,8 @@ import com.powerampremote.mobile.communication.PlayerProtocol.State
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
+import com.powerampremote.mobile.communication.NowPlayingProtocol
+import java.util.Base64
 
 /** Últimos eventos informados pelo player. UNKNOWN não significa pausado. */
 object PowerampRepository {
@@ -18,15 +20,28 @@ object PowerampRepository {
     private var restored = false
     private val mutableSnapshot = MutableStateFlow(Snapshot())
     val snapshot = mutableSnapshot.asStateFlow()
+    private val mutableNowPlaying = MutableStateFlow(NowPlayingProtocol.Snapshot())
+    val nowPlaying = mutableNowPlaying.asStateFlow()
 
     fun read(context: Context): Snapshot = synchronized(monitor) {
         if (!restored) {
             val encoded = context.getSharedPreferences("poweramp_state", Context.MODE_PRIVATE)
                 .getString("snapshot", null)
             mutableSnapshot.value = encoded?.let { PlayerProtocol.decodeSnapshot(it.toByteArray()) } ?: Snapshot()
+            val metadata = context.getSharedPreferences("poweramp_state", Context.MODE_PRIVATE)
+                .getString("now_playing_v3", null)
+            mutableNowPlaying.value = try {
+                metadata?.let { NowPlayingProtocol.decode(Base64.getDecoder().decode(it)) }
+                    ?: NowPlayingProtocol.Snapshot()
+            } catch (_: IllegalArgumentException) { NowPlayingProtocol.Snapshot() }
             restored = true
         }
         mutableSnapshot.value
+    }
+
+    fun readNowPlaying(context: Context): NowPlayingProtocol.Snapshot = synchronized(monitor) {
+        read(context)
+        mutableNowPlaying.value
     }
 
     /** Chamado apenas para os dois eventos explícitos documentados pelo Poweramp. */
@@ -35,6 +50,8 @@ object PowerampRepository {
         val at = intent.getLongExtra("ts", 0)
         if (at <= 0 || at > System.currentTimeMillis() + 1_000) return false
         val before = read(context)
+        val metadataBefore = mutableNowPlaying.value
+        val metadataAfter = NowPlayingProtocol.merge(metadataBefore, PowerampMetadataParser.parse(intent, at))
         val after = when (intent.action) {
             PowerampContract.STATUS -> {
                 if (at < before.reportedAt) return false
@@ -45,7 +62,12 @@ object PowerampRepository {
                     -1 -> State.UNKNOWN
                     else -> return false
                 }
-                before.copy(state = state, reportedAt = at)
+                // Builds recentes também incluem a faixa no evento de estado.
+                val metadataId = metadataAfter.trackId
+                val normalizedId = if (metadataId > 0) metadataId else -1
+                if (metadataAfter.metadataAt == at && normalizedId != before.trackId) {
+                    before.copy(state = state, reportedAt = at, trackId = normalizedId, trackReportedAt = at)
+                } else before.copy(state = state, reportedAt = at)
             }
             else -> {
                 if (at < before.trackReportedAt) return false
@@ -53,14 +75,33 @@ object PowerampRepository {
                 val track = intent.getBundleExtra("track")
                 val id = if (intent.hasExtra("id")) intent.getLongExtra("id", -1)
                     else track?.getLong("id", -1) ?: -1
-                if (id < 0) return false
-                before.copy(trackId = id, trackReportedAt = at)
+                before.copy(trackId = if (id > 0) id else -1, trackReportedAt = at)
             }
         }
+        if (before == after && metadataBefore == metadataAfter) return false
         mutableSnapshot.value = after
+        mutableNowPlaying.value = metadataAfter
         context.getSharedPreferences("poweramp_state", Context.MODE_PRIVATE).edit()
             .putString("snapshot", PlayerProtocol.encodeSnapshot(after).toString(Charsets.US_ASCII)).apply()
+        saveNowPlaying(context)
         monitor.notifyAll()
+        true
+    }
+
+    private fun saveNowPlaying(context: Context) {
+        context.getSharedPreferences("poweramp_state", Context.MODE_PRIVATE).edit()
+            .putString("now_playing_v3", Base64.getEncoder().encodeToString(
+                NowPlayingProtocol.encode(mutableNowPlaying.value))).apply()
+    }
+
+    /** POS_SYNC não identifica a faixa: rejeita a resposta se a referência mudou na espera. */
+    fun receivePosition(context: Context, seconds: Int, expected: NowPlayingProtocol.Snapshot): Boolean = synchronized(monitor) {
+        val current = readNowPlaying(context)
+        if (seconds < 0 || current.trackId != expected.trackId || current.metadataAt != expected.metadataAt) return false
+        val at = System.currentTimeMillis()
+        if (at < maxOf(current.metadataAt, current.positionAt)) return false
+        mutableNowPlaying.value = current.copy(positionMs = seconds.toLong() * 1000, positionAt = at)
+        saveNowPlaying(context)
         true
     }
 
@@ -79,7 +120,12 @@ object PowerampRepository {
 
     suspend fun publish(context: Context) {
         val request = PutDataMapRequest.create(PlayerProtocol.STATE_PATH)
-        request.dataMap.putByteArray("snapshot", PlayerProtocol.encodeSnapshot(read(context)))
+        // Estado e metadados são capturados sob o mesmo monitor: uma versão coerente.
+        synchronized(monitor) {
+            request.dataMap.putByteArray("snapshot", PlayerProtocol.encodeSnapshot(read(context)))
+            request.dataMap.putByteArray(NowPlayingProtocol.DATA_KEY,
+                NowPlayingProtocol.encode(mutableNowPlaying.value))
+        }
         Wearable.getDataClient(context).putDataItem(request.asPutDataRequest().setUrgent()).await()
     }
 }

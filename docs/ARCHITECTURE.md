@@ -49,3 +49,9 @@ A versão 0.1 foi autorizada. As Activities agora exibem estado dinâmico: o rel
 PowerampController traduz somente os quatro comandos permitidos para broadcasts explícitos ao receiver oficial do player. PowerampEventReceiver recebe eventos de estado e faixa; PowerampRepository mantém o último informe com horário e o publica via DataClient. Os pedidos e suas etapas usam MessageClient, com correlação por nó, UUID e comando. O teste v1 permanece disponível.
 
 O estado persistido não é tratado como consulta atual. A observação de uma alteração exige um evento novo em relação ao snapshot anterior; os broadcasts do Poweramp não oferecem correlação causal com nosso UUID. O Companion não inicia o serviço de reprodução nem abre Activities automaticamente em segundo plano. Há uma alternativa manual Abrir Poweramp no celular. Veja [V0_2.md](V0_2.md) para contrato, limitações e testes.
+
+## Arquitetura da versão 0.3
+
+PowerampMetadataParser adapta eventos de faixa/estado ao modelo de metadados. NowPlayingProtocol mantém o codec e as regras de atualização parcial; o novo campo now_playing_v3 acompanha o snapshot v2 no mesmo DataItem. A publicação captura ambos sob o mesmo monitor. O relógio impede exibir metadados de uma faixa anterior quando o estado já aponta para outra.
+
+O botão Atualizar solicita a consulta oficial POS_SYNC. PowerampPositionSync registra um receiver temporário com ContextCompat, espera até três segundos e confere se a referência da faixa permaneceu igual. Ao fim, remove o receiver. Não há polling, serviço permanente ou cálculo de uma posição estimada. Veja [V0_3.md](V0_3.md).

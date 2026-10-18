@@ -41,4 +41,16 @@ Remote</string>
     <string name="player_pause">Pause</string>
     <string name="player_next">Próxima</string>
     <string name="player_previous">Anterior</string>
+    <string name="metadata_title_unknown">Título não informado</string>
+    <string name="metadata_artist_unknown">Artista não informado</string>
+    <string name="metadata_album_unknown">não informado</string>
+    <string name="metadata_album">Álbum: %1$s</string>
+    <string name="metadata_position">Posição informada: %1$s / %2$s</string>
+    <string name="metadata_waiting">Aguardando informações da faixa. Selecione uma música no Poweramp após atualizar o Companion.</string>
+    <string name="metadata_sync_hint">Atualizar solicita a posição ao Poweramp. Role para acessar os controles.</string>
+    <string name="metadata_sync_loading">Consultando a posição no celular…</string>
+    <string name="metadata_sync_received">O celular recebeu a posição do Poweramp.</string>
+    <string name="metadata_sync_unavailable">Sem nova posição. Selecione uma faixa no Poweramp e tente Atualizar novamente.</string>
+    <string name="metadata_sync_failed">Não foi possível atualizar a posição. O último informe pode estar antigo.</string>
+    <string name="metadata_update_companion">Confira a conexão e atualize o Companion para a versão 0.3.</string>
 </resources>

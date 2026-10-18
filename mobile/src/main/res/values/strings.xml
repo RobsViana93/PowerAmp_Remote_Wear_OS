@@ -16,4 +16,10 @@ Companion</string>
     <string name="player_setup">Após atualizar o Companion, abra o Poweramp e faça um ciclo de Play/Pause para habilitar os eventos. Um informe guardado pode estar desatualizado.</string>
     <string name="player_open">Abrir Poweramp</string>
     <string name="player_open_failed">Não foi possível abrir o Poweramp. Verifique se ele está instalado.</string>
+    <string name="metadata_title_unknown">Título não informado</string>
+    <string name="metadata_artist_unknown">Artista não informado</string>
+    <string name="metadata_album_unknown">não informado</string>
+    <string name="metadata_album">Álbum: %1$s</string>
+    <string name="metadata_position">Posição informada: %1$s / %2$s</string>
+    <string name="metadata_waiting">Aguardando informações da faixa. Selecione uma música no Poweramp após atualizar o Companion.</string>
 </resources>

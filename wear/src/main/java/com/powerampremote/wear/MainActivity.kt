@@ -31,6 +31,9 @@ import com.powerampremote.wear.communication.PlayerProtocol
 import com.powerampremote.wear.communication.PlayerNotice
 import java.text.DateFormat
 import java.util.Date
+import androidx.compose.ui.text.style.TextOverflow
+import com.powerampremote.wear.communication.NowPlayingProtocol
+import com.powerampremote.wear.communication.SyncNotice
 
 /** A Activity apresenta a tela; o ViewModel mantém o estado da comunicação. */
 class MainActivity : ComponentActivity() {
@@ -42,7 +45,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val state by communication.state.collectAsStateWithLifecycle()
             MaterialTheme {
-                CommunicationScreen(state, communication::sendTest, communication::refreshConnection,
+                CommunicationScreen(state, communication::sendTest, communication::refreshNowPlaying,
                     communication::sendPlayerCommand)
             }
         }
@@ -89,6 +92,7 @@ private fun CommunicationScreen(state: CommunicationState, onTest: () -> Unit, o
             style = MaterialTheme.typography.titleMedium, color = Color.White)
         Text(stringResource(connectionText), textAlign = TextAlign.Center,
             color = if (state.connection == Connection.AVAILABLE) Color(0xFF80CBC4) else Color.White)
+        NowPlayingInformation(state)
         PlayerControls(state, onCommand)
         Button(onClick = onRefresh, enabled = !state.busy && state.connection != Connection.CHECKING) {
             Text(stringResource(R.string.refresh_connection))
@@ -99,6 +103,43 @@ private fun CommunicationScreen(state: CommunicationState, onTest: () -> Unit, o
         Text(stringResource(phaseText), textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodySmall, color = Color.White)
     }
+}
+
+@Composable
+private fun NowPlayingInformation(state: CommunicationState) {
+    val metadata = state.nowPlaying
+    val currentTrack = state.playerSnapshot
+    if (NowPlayingProtocol.matchesTrack(metadata, currentTrack.trackId, currentTrack.trackReportedAt)) {
+        Text(metadata.title.ifBlank { stringResource(R.string.metadata_title_unknown) },
+            color = Color.White, textAlign = TextAlign.Center, style = MaterialTheme.typography.titleSmall,
+            maxLines = 3, overflow = TextOverflow.Ellipsis)
+        Text(metadata.artist.ifBlank { stringResource(R.string.metadata_artist_unknown) },
+            color = Color.White, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(stringResource(R.string.metadata_album,
+            metadata.album.ifBlank { stringResource(R.string.metadata_album_unknown) }),
+            color = Color.White, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall,
+            maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(stringResource(R.string.metadata_position, NowPlayingProtocol.formatTime(metadata.positionMs),
+            NowPlayingProtocol.formatTime(metadata.durationMs)), color = Color(0xFF80CBC4),
+            textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall)
+    } else {
+        Text(stringResource(R.string.metadata_waiting), color = Color.White,
+            textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall)
+    }
+    val syncText = when (state.syncStage) {
+        NowPlayingProtocol.SyncStage.SYNCED -> R.string.metadata_sync_received
+        NowPlayingProtocol.SyncStage.NO_POSITION -> R.string.metadata_sync_unavailable
+        NowPlayingProtocol.SyncStage.NOT_INSTALLED -> R.string.player_missing
+        NowPlayingProtocol.SyncStage.ERROR -> R.string.metadata_sync_failed
+        null -> when (state.syncNotice) {
+            SyncNotice.IDLE -> R.string.metadata_sync_hint
+            SyncNotice.LOADING -> R.string.metadata_sync_loading
+            SyncNotice.UPDATE_COMPANION -> R.string.metadata_update_companion
+            SyncNotice.FAILED -> R.string.metadata_sync_failed
+        }
+    }
+    Text(stringResource(syncText), color = Color.White, textAlign = TextAlign.Center,
+        style = MaterialTheme.typography.bodySmall)
 }
 
 @Composable

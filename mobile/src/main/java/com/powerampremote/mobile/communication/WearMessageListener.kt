@@ -7,12 +7,19 @@ import com.google.android.gms.wearable.WearableListenerService
 import java.util.concurrent.TimeUnit
 import com.powerampremote.mobile.poweramp.PowerampController
 import com.powerampremote.mobile.poweramp.PowerampRepository
+import com.powerampremote.mobile.poweramp.PowerampPositionSync
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 
 /** Google Play services ativa este serviço somente para eventos filtrados. */
 class WearMessageListener : WearableListenerService() {
     // O callback é serializado pelo serviço. Evita repetir um mesmo pedido nesta instância.
     private val completed = LinkedHashMap<String, PlayerProtocol.Result>()
     override fun onMessageReceived(event: MessageEvent) {
+        if (event.path == NowPlayingProtocol.REFRESH_PATH) {
+            refreshPosition(event)
+            return
+        }
         if (event.path == PlayerProtocol.COMMAND_PATH) {
             receivePlayerCommand(event)
             return
@@ -37,6 +44,21 @@ class WearMessageListener : WearableListenerService() {
             CompanionStatus.update(ReceiptStatus.ACK_FAILED)
         } catch (_: Exception) {
             CompanionStatus.update(ReceiptStatus.ACK_FAILED)
+        }
+    }
+
+    private fun refreshPosition(event: MessageEvent) {
+        val id = NowPlayingProtocol.decodeRefresh(event.data) ?: return
+        try {
+            val stage = PowerampPositionSync(this).request()
+            runBlocking { withTimeout(2_000) { PowerampRepository.publish(this@WearMessageListener) } }
+            Tasks.await(Wearable.getMessageClient(this).sendMessage(event.sourceNodeId,
+                NowPlayingProtocol.REFRESH_RESULT_PATH,
+                NowPlayingProtocol.encodeSyncResult(NowPlayingProtocol.SyncResult(id, stage))), 2, TimeUnit.SECONDS)
+        } catch (interrupted: InterruptedException) {
+            Thread.currentThread().interrupt()
+        } catch (_: Exception) {
+            // O relógio limita sua espera; uma falha não inventa posição ou confirmação.
         }
     }
 

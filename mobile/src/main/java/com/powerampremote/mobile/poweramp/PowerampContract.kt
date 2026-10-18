@@ -9,4 +9,5 @@ object PowerampContract {
     const val COMMAND = "com.maxmpz.audioplayer.API_COMMAND"
     const val STATUS = "com.maxmpz.audioplayer.STATUS_CHANGED_EXPLICIT"
     const val TRACK = "com.maxmpz.audioplayer.TRACK_CHANGED_EXPLICIT"
+    const val POSITION_SYNC = "com.maxmpz.audioplayer.TPOS_SYNC"
 }

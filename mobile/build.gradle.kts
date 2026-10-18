@@ -11,8 +11,8 @@ android {
         applicationId = "com.powerampremote"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.2.0"
+        versionCode = 4
+        versionName = "0.3.0"
     }
     buildFeatures { compose = true }
     compileOptions {
@@ -26,6 +26,7 @@ kotlin {
     }
 }
 dependencies {
+    implementation(libs.androidx.core)
     implementation(platform(libs.compose.bom))
     implementation(libs.play.services.wearable)
     implementation(libs.lifecycle.runtime.compose)

@@ -1,6 +1,6 @@
 # Validação das etapas
 
-**Etapa atual: versão 0.2.** Use a [matriz de integração com Poweramp](V0_2.md#teste-no-s23-e-watch-7). A versão 0.1 foi aprovada após uma troca de mensagem e confirmação nos emuladores; seu [roteiro de comunicação](V0_1.md#teste-no-android-studio) continua útil como diagnóstico. As seções anteriores permanecem como histórico.
+**Etapa atual: versão 0.3.** Use o [roteiro de metadados e posição](V0_3.md#testar-no-ambiente-atual). O usuário aprovou os quatro controles da versão 0.2 nos emuladores com músicas. A matriz física da versão 0.2 continua útil para os cenários de conexão e processo ainda não documentados como executados. As seções anteriores permanecem como histórico.
 
 ## Estado
 
@@ -154,4 +154,19 @@ Em 18/10/2026, o usuário confirmou o teste aprovado e as alterações válidas,
 - Captura dos controles inspecionada em wear/build/reports/player-v02.png. A tela exige rolagem, e o emulador deve estar acordado para receber o toque.
 - git diff --check executado sem erros.
 
-Não executados: reprodução em Poweramp real, eventos reais de estado/faixa, sincronização disparada por esses eventos, testes dos três estados de processo e restrições da Samsung. Use a [matriz física da versão 0.2](V0_2.md#teste-no-s23-e-watch-7). Testes unitários com snapshots simulados não substituem esses cenários.
+Na execução inicial acima, não foram testados reprodução em Poweramp real, eventos reais de estado/faixa, sincronização disparada por esses eventos, os três estados de processo e restrições da Samsung. Posteriormente, o usuário instalou o Poweramp, copiou músicas para o celular emulado e confirmou todos os quatro botões funcionando, autorizando a versão 0.3. Use a [matriz física da versão 0.2](V0_2.md#teste-no-s23-e-watch-7) para os cenários ainda pendentes.
+
+## Versão 0.3 — validação executada em 18/10/2026
+
+- Comando final: `gradlew.bat :mobile:assembleDebug :wear:assembleDebug :mobile:testDebugUnitTest :wear:testDebugUnitTest :mobile:lintDebug :wear:lintDebug --console=plain`.
+- Resultado: BUILD SUCCESSFUL em 1m02s; 102 tarefas, 21 executadas e 81 atualizadas.
+- Relatórios JUnit: 15 testes de NowPlayingProtocol, 10 de PlayerProtocol e 5 de TestProtocol em cada módulo; 60 testes ao todo, zero falhas e erros. Incluem Unicode, dados inválidos, unidades, ausência de campos e ordenação independente de metadados e posição.
+- Lint: zero erros e 14 avisos por módulo. O registro dinâmico do receptor de posição usa ContextCompat com RECEIVER_EXPORTED, necessário para receber o evento do Poweramp.
+- APKs finais instalados com Success; Activities abertas com Status: ok nos emuladores emulator-5554 e emulator-5556.
+- Integração com Poweramp real, build-1031-bundle-play: Companion e relógio mostraram Sub Specie Aeternitatis, AD NAUSEAM, Live at Roadburn [24bit] e duração informada 14:39. A interface nativa arredondou a duração para 14:40.
+- A troca para Teste-01 pelo botão Próxima do próprio Poweramp atualizou automaticamente o relógio com o Companion em segundo plano. Artista e álbum passaram a não informados, sem preservar as tags anteriores. Esta execução não comprovou troca de metadados usando Próxima no relógio.
+- Durante a reprodução de Teste-01, Atualizar no relógio retornou O celular recebeu a posição do Poweramp e exibiu 0:27 / 1:00, com último informe reproduzindo. O valor é uma posição reportada e permanece estático entre informes. Uma leitura posterior do player já indicava 0:37.
+- Telas inspecionadas nas capturas locais mobile/build/reports/companion-v03.png e wear/build/reports/player-v03.png. A tela circular exige rolagem e deve estar acordada para receber toques.
+- Ao encerrar a verificação foi enviado o comando oficial de pausa ao Poweramp.
+
+Permanecem pendentes a validação do usuário da versão 0.3, testes físicos no S23+/Watch 7, matriz completa de processos, reconexão e restrições de bateria. Os testes locais não substituem esses cenários. Siga [V0_3.md](V0_3.md) para repetir a verificação nos emuladores.

@@ -3,5 +3,6 @@
     <string-array name="android_wear_capabilities" translatable="false">
         <item>poweramp_remote_companion_v1</item>
         <item>poweramp_remote_companion_v2</item>
+        <item>poweramp_remote_companion_v3</item>
     </string-array>
 </resources>

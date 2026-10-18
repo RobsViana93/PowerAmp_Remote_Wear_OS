@@ -14,6 +14,7 @@ import com.google.android.gms.wearable.DataClient
 import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
+import com.google.android.gms.wearable.DataMap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
@@ -37,8 +38,13 @@ data class CommunicationState(
     val playerSnapshot: PlayerProtocol.Snapshot = PlayerProtocol.Snapshot(),
     val playerStage: PlayerProtocol.Stage? = null,
     val playerNotice: PlayerNotice = PlayerNotice.IDLE,
-    val playerCommand: PlayerProtocol.Command? = null
+    val playerCommand: PlayerProtocol.Command? = null,
+    val nowPlaying: NowPlayingProtocol.Snapshot = NowPlayingProtocol.Snapshot(),
+    val metadataAvailable: Boolean = false,
+    val syncStage: NowPlayingProtocol.SyncStage? = null,
+    val syncNotice: SyncNotice = SyncNotice.IDLE
 )
+enum class SyncNotice { IDLE, LOADING, UPDATE_COMPANION, FAILED }
 enum class PlayerNotice { IDLE, SENDING, WAITING, TIMEOUT, FAILED, CANCELLED, INCOMPATIBLE }
 enum class Connection { CHECKING, AVAILABLE, UNAVAILABLE, ERROR }
 enum class TestPhase { IDLE, SENDING, WAITING_ACK, CONFIRMED, NO_PHONE, FAILED, TIMEOUT, CANCELLED }
@@ -60,6 +66,8 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
     private var playerJob: Job? = null
     private var pendingPlayer: PendingPlayer? = null
     private var selectedPhoneId: String? = null
+    private var syncJob: Job? = null
+    private var pendingSync: PendingSync? = null
     @Volatile private var cleared = false
 
     private data class PendingTest(
@@ -72,6 +80,8 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         val nodeId: String,
         val result: CompletableDeferred<PlayerProtocol.Result>
     )
+    private data class PendingSync(val id: String, val nodeId: String,
+                                   val result: CompletableDeferred<NowPlayingProtocol.SyncResult>)
 
     /** Também permite repetir a inicialização após indisponibilidade do Play services. */
     private suspend fun ensureListeners(): Boolean = registrationMutex.withLock {
@@ -88,6 +98,10 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                 capabilities.addListener(this@CommunicationViewModel, PlayerProtocol.CAPABILITY)
                     .addOnSuccessListener {
                         if (cleared) capabilities.removeListener(this@CommunicationViewModel, PlayerProtocol.CAPABILITY)
+                    }.await()
+                capabilities.addListener(this@CommunicationViewModel, NowPlayingProtocol.CAPABILITY)
+                    .addOnSuccessListener {
+                        if (cleared) capabilities.removeListener(this@CommunicationViewModel, NowPlayingProtocol.CAPABILITY)
                     }.await()
                 dataClient.addListener(this@CommunicationViewModel)
                     .addOnSuccessListener { if (cleared) dataClient.removeListener(this@CommunicationViewModel) }
@@ -122,17 +136,20 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
             val discovery = withTimeout(5_000) {
                 val testNodes = capabilities.getCapability(TestProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
                 val playerNodes = capabilities.getCapability(PlayerProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
-                testNodes to playerNodes
+                val metadataNodes = capabilities.getCapability(NowPlayingProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
+                Triple(testNodes, playerNodes, metadataNodes)
             }
             nodes = discovery.first
             val phone = nodes.sortedWith(compareByDescending<Node> { it.isNearby }.thenBy { it.id }).firstOrNull()
             if (phone?.id != selectedPhoneId) {
-                mutableState.update { it.copy(playerSnapshot = PlayerProtocol.Snapshot()) }
+                mutableState.update { it.copy(playerSnapshot = PlayerProtocol.Snapshot(),
+                    nowPlaying = NowPlayingProtocol.Snapshot(), syncStage = null, syncNotice = SyncNotice.IDLE) }
             }
             selectedPhoneId = phone?.id
             mutableState.update {
                 it.copy(connection = if (nodes.isEmpty()) Connection.UNAVAILABLE else Connection.AVAILABLE,
-                    playerAvailable = discovery.second.any { node -> node.id == phone?.id })
+                    playerAvailable = discovery.second.any { node -> node.id == phone?.id },
+                    metadataAvailable = discovery.third.any { node -> node.id == phone?.id })
             }
             // Prefere o celular próximo; escolha determinística se houver mais de um.
             phone
@@ -190,6 +207,15 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
     }
 
     override fun onMessageReceived(event: MessageEvent) {
+        if (event.path == NowPlayingProtocol.REFRESH_RESULT_PATH) {
+            val result = NowPlayingProtocol.decodeSyncResult(event.data) ?: return
+            val source = event.sourceNodeId
+            viewModelScope.launch {
+                val request = pendingSync ?: return@launch
+                if (request.nodeId == source && request.id == result.id) request.result.complete(result)
+            }
+            return
+        }
         if (event.path == PlayerProtocol.RESULT_PATH) {
             val result = PlayerProtocol.decodeResult(event.data) ?: return
             val source = event.sourceNodeId
@@ -214,11 +240,45 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
     }
 
     override fun onCapabilityChanged(info: CapabilityInfo) {
-        if (info.name in setOf(TestProtocol.CAPABILITY, PlayerProtocol.CAPABILITY)) refreshConnection()
+        if (info.name in setOf(TestProtocol.CAPABILITY, PlayerProtocol.CAPABILITY, NowPlayingProtocol.CAPABILITY)) refreshConnection()
     }
 
     /** Ao sair da tela, não deixa um teste antigo continuar em segundo plano. */
-    fun cancelTest() { testJob?.cancel(); playerJob?.cancel() }
+    fun cancelTest() { testJob?.cancel(); playerJob?.cancel(); syncJob?.cancel() }
+
+    /** Somente o botão Atualizar solicita POS_SYNC; callbacks de conexão apenas leem cache. */
+    fun refreshNowPlaying() {
+        if (mutableState.value.busy) return
+        mutableState.update { it.copy(busy = true, syncStage = null, syncNotice = SyncNotice.LOADING) }
+        syncJob = viewModelScope.launch {
+            try {
+                withTimeout(12_000) {
+                    check(ensureListeners())
+                    val phone = queryPhone()
+                    if (phone == null || !mutableState.value.metadataAvailable) {
+                        mutableState.update { it.copy(syncNotice = SyncNotice.UPDATE_COMPANION) }
+                        return@withTimeout
+                    }
+                    loadPlayerState(phone.id)
+                    val pending = PendingSync(UUID.randomUUID().toString(), phone.id, CompletableDeferred())
+                    pendingSync = pending
+                    messages.sendMessage(phone.id, NowPlayingProtocol.REFRESH_PATH,
+                        NowPlayingProtocol.encodeRefresh(pending.id)).await()
+                    val result = pending.result.await()
+                    mutableState.update { it.copy(syncStage = result.stage, syncNotice = SyncNotice.IDLE) }
+                    loadPlayerState(phone.id)
+                }
+            } catch (cancelled: CancellationException) {
+                mutableState.update { it.copy(syncNotice = SyncNotice.FAILED) }
+                if (cancelled !is TimeoutCancellationException) throw cancelled
+            } catch (_: Exception) {
+                mutableState.update { it.copy(syncNotice = SyncNotice.FAILED) }
+            } finally {
+                pendingSync = null
+                mutableState.update { it.copy(busy = false) }
+            }
+        }
+    }
 
     fun sendPlayerCommand(command: PlayerProtocol.Command) {
         if (mutableState.value.busy) return
@@ -270,9 +330,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
             }
             try {
                 for (item in items) {
-                    val bytes = DataMapItem.fromDataItem(item).dataMap.getByteArray("snapshot") ?: continue
-                    val snapshot = PlayerProtocol.decodeSnapshot(bytes) ?: continue
-                    if (nodeId == selectedPhoneId) acceptSnapshot(snapshot)
+                    if (nodeId == selectedPhoneId) acceptDataMap(DataMapItem.fromDataItem(item).dataMap)
                 }
             } finally { items.release() }
         } catch (cancelled: CancellationException) {
@@ -282,17 +340,35 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
+    private fun acceptDataMap(data: DataMap) {
+        val player = data.getByteArray("snapshot")?.let(PlayerProtocol::decodeSnapshot) ?: return
+        acceptSnapshot(player)
+        val metadata = data.getByteArray(NowPlayingProtocol.DATA_KEY)?.let(NowPlayingProtocol::decode) ?: return
+        val state = mutableState.value
+        if (metadata.metadataAt < state.nowPlaying.metadataAt) return
+        val currentTrack = state.playerSnapshot
+        if (!NowPlayingProtocol.matchesTrack(metadata, currentTrack.trackId, currentTrack.trackReportedAt)) return
+        val merged = if (metadata.trackId == state.nowPlaying.trackId && metadata.positionAt < state.nowPlaying.positionAt)
+            metadata.copy(positionMs = state.nowPlaying.positionMs, positionAt = state.nowPlaying.positionAt) else metadata
+        mutableState.update { it.copy(nowPlaying = merged) }
+    }
+
     override fun onDataChanged(events: DataEventBuffer) {
         // Copia os bytes enquanto o buffer da API ainda é válido.
         for (event in events) {
             val item = event.dataItem
             if (event.type != DataEvent.TYPE_CHANGED || item.uri.path != PlayerProtocol.STATE_PATH) continue
             val source = item.uri.host
-            val snapshot = try {
-                val bytes = DataMapItem.fromDataItem(item).dataMap.getByteArray("snapshot") ?: continue
-                PlayerProtocol.decodeSnapshot(bytes) ?: continue
+            val copiedData = try {
+                val original = DataMapItem.fromDataItem(item).dataMap
+                DataMap().apply {
+                    original.getByteArray("snapshot")?.let { putByteArray("snapshot", it.copyOf()) }
+                    original.getByteArray(NowPlayingProtocol.DATA_KEY)?.let {
+                        putByteArray(NowPlayingProtocol.DATA_KEY, it.copyOf())
+                    }
+                }
             } catch (_: RuntimeException) { continue }
-            viewModelScope.launch { if (source == selectedPhoneId) acceptSnapshot(snapshot) }
+            viewModelScope.launch { if (source == selectedPhoneId) acceptDataMap(copiedData) }
         }
     }
 
@@ -301,6 +377,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         messages.removeListener(this)
         capabilities.removeListener(this, TestProtocol.CAPABILITY)
         capabilities.removeListener(this, PlayerProtocol.CAPABILITY)
+        capabilities.removeListener(this, NowPlayingProtocol.CAPABILITY)
         dataClient.removeListener(this)
         super.onCleared()
     }
