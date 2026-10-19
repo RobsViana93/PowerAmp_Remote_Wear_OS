@@ -37,10 +37,18 @@ private val Accent = Color(0xFF80CBC4)
 @Composable
 internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProtocol.Command) -> Unit,
                               onRefresh: () -> Unit, onSeek: (Int, Long, Long) -> Unit,
+                              onAdditionalControl: (ControlsProtocol.Action) -> Unit,
                               details: @Composable () -> Unit) {
     var showDetails by remember { mutableStateOf(false) }
+    var showControls by remember { mutableStateOf(false) }
     var seeking by remember(state.playerSnapshot.trackId, state.playerSnapshot.trackReportedAt) { mutableStateOf(false) }
-    BackHandler(enabled = showDetails || seeking) { if (showDetails) showDetails = false else seeking = false }
+    BackHandler(enabled = showDetails || showControls || seeking) {
+        when { showDetails -> showDetails = false; showControls -> showControls = false; else -> seeking = false }
+    }
+    if (showControls) {
+        AdditionalControlsScreen(state, onAdditionalControl) { showControls = false }
+        return
+    }
     if (showDetails) {
         Column(Modifier.fillMaxSize().background(Color.Black)) {
             Button(onClick = { showDetails = false }, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 16.dp)) {
@@ -53,7 +61,7 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
     val metadata = state.nowPlaying
     val player = state.playerSnapshot
     val matches = NowPlayingProtocol.matchesTrack(metadata, player.trackId, player.trackReportedAt)
-    val position = if (matches) metadata.positionMs else -1
+    val position = if (matches) state.estimatedPositionMs ?: metadata.positionMs else -1
     val duration = if (matches) metadata.durationMs else -1
     val connected = state.connection == Connection.AVAILABLE
     val enabled = connected && state.playerAvailable && !state.busy
@@ -85,7 +93,8 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
         Text(if (matches) metadata.artist.ifBlank { stringResource(R.string.metadata_artist_unknown) }
             else stringResource(R.string.metadata_artist_unknown), color = Accent,
             style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        val progressDescription = stringResource(R.string.metadata_position, NowPlayingProtocol.formatTime(position),
+        val progressDescription = stringResource(if (state.estimatedPositionMs != null) R.string.controls_estimated_description
+            else R.string.metadata_position, NowPlayingProtocol.formatTime(position),
             NowPlayingProtocol.formatTime(duration))
         Canvas(Modifier.fillMaxWidth().height(6.dp).semantics { contentDescription = progressDescription }) {
             drawLine(Color(0xFF384542), start = androidx.compose.ui.geometry.Offset(0f, size.height / 2),
@@ -95,7 +104,8 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
                 end = androidx.compose.ui.geometry.Offset(size.width * fraction, size.height / 2),
                 strokeWidth = size.height, cap = StrokeCap.Round)
         }
-        Text("${NowPlayingProtocol.formatTime(position)} / ${NowPlayingProtocol.formatTime(duration)}",
+        Text(stringResource(if (state.estimatedPositionMs != null) R.string.controls_estimated_time else R.string.controls_reported_time,
+            NowPlayingProtocol.formatTime(position), NowPlayingProtocol.formatTime(duration)),
             color = Color.White, style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, lineHeight = 12.sp)
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
             TransportButton(PlayerProtocol.Command.PREVIOUS, enabled, onCommand)
@@ -138,11 +148,19 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
             Text(stringResource(result), color = Accent, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
         }
         Button(onClick = onRefresh, enabled = !state.busy) { Text(stringResource(R.string.refresh_connection)) }
-        Text(stringResource(R.string.visual_reported_position), color = Color.White,
+        Text(stringResource(when {
+            state.autoUpdatesFailed -> R.string.controls_auto_failed
+            state.estimatedPositionMs != null -> R.string.controls_position_estimated
+            state.autoUpdatesActive -> R.string.controls_auto_active
+            else -> R.string.visual_reported_position
+        }), color = Color.White,
             style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
         Text(if (matches) metadata.album.ifBlank { stringResource(R.string.metadata_album_unknown) }
             else stringResource(R.string.metadata_album_unknown), color = Color.White,
             style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        Button(onClick = { showControls = true; onAdditionalControl(ControlsProtocol.Action.QUERY) }) {
+            Text(stringResource(R.string.controls_title))
+        }
         Button(onClick = { showDetails = true }) { Text(stringResource(R.string.visual_details)) }
     }
 }

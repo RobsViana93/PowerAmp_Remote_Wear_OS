@@ -2,11 +2,15 @@
 
 Projeto pessoal em Kotlin para Galaxy S23+ e Galaxy Watch 7. O áudio continuará no celular.
 
-## Etapa atual: interface visual (0.4.0)
+## Etapa atual: controles adicionais (0.5.0)
+
+O usuário aprovou os testes da versão 0.4 e autorizou a próxima etapa. A versão 0.5 acrescenta shuffle, repeat, volume de mídia do celular e consultas automáticas enquanto a tela do relógio está ativa. A posição estimada aparece com ≈ e tem limite de avanço. Consulte [o guia da versão 0.5](docs/V0_5.md) e atualize os dois aplicativos.
+
+Validação da versão 0.5: APKs compilados, 92 testes locais aprovados e lint sem erros (16 avisos no mobile e 18 no wear). Shuffle foi verificado no Poweramp real. Os testes finais de repetição, volume e avanço automático ficaram pendentes após as capturas do emulador Wear OS passarem a ficar pretas. Detalhes e limites estão em [TESTING.md](docs/TESTING.md).
 
 O usuário aprovou os testes dos botões da versão 0.3 e autorizou a versão 0.4. A etapa atual acrescenta capa por Asset, barra da última posição informada, ajuste confirmado da posição e controles agrupados na tela circular. Consulte [o guia da versão 0.4](docs/V0_4.md) para conceitos, limitações e testes. Atualize os dois aplicativos.
 
-Validação da versão 0.4: APKs compilados, 74 testes aprovados e lint sem erros (16 avisos por módulo). Nos emuladores com Poweramp real, foram conferidos capa recebida, remoção da capa ao trocar para faixa sem imagem, Próxima pelo novo layout, seek de 0:04 para 0:24 e cancelamento do editor. O roteiro aguarda sua validação. Uma ocorrência de falta de resposta da interface do Poweramp foi registrada em [TESTING.md](docs/TESTING.md).
+Validação da versão 0.4: APKs compilados, 74 testes aprovados e lint sem erros (16 avisos por módulo). Nos emuladores com Poweramp real, foram conferidos capa recebida, remoção da capa ao trocar para faixa sem imagem, Próxima pelo novo layout, seek de 0:04 para 0:24 e cancelamento do editor. O usuário confirmou os testes e autorizou a versão 0.5. Uma ocorrência de falta de resposta da interface do Poweramp foi registrada em [TESTING.md](docs/TESTING.md).
 
 A versão 0.2 foi aprovada pelo usuário após testes dos quatro botões com músicas no celular emulado. A versão 0.3 acrescenta título, artista, álbum, duração e posição informada. O botão Atualizar pode solicitar a posição pela API oficial POS_SYNC, sem polling contínuo. Consulte [o guia da versão 0.3](docs/V0_3.md).
 

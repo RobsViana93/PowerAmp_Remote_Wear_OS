@@ -33,6 +33,11 @@ import android.graphics.BitmapFactory
 import com.google.android.gms.wearable.Asset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import android.os.PowerManager
+import android.os.SystemClock
 
 /** Estado imutável que a interface observa; conexão e resultado são separados. */
 data class CommunicationState(
@@ -51,7 +56,15 @@ data class CommunicationState(
     val visualAvailable: Boolean = false,
     val artwork: Bitmap? = null,
     val seekStage: VisualProtocol.Stage? = null,
-    val seekFailed: Boolean = false
+    val seekFailed: Boolean = false,
+    val controlsAvailable: Boolean = false,
+    val controls: ControlsProtocol.Snapshot = ControlsProtocol.Snapshot(),
+    val controlsStage: ControlsProtocol.Stage? = null,
+    val controlsAction: ControlsProtocol.Action? = null,
+    val controlsFailed: Boolean = false,
+    val estimatedPositionMs: Long? = null,
+    val autoUpdatesActive: Boolean = false,
+    val autoUpdatesFailed: Boolean = false
 )
 enum class SyncNotice { IDLE, LOADING, UPDATE_COMPANION, FAILED }
 enum class PlayerNotice { IDLE, SENDING, WAITING, TIMEOUT, FAILED, CANCELLED, INCOMPATIBLE }
@@ -81,6 +94,16 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
     private var pendingSeek: PendingSeek? = null
     private var artJob: Job? = null
     private var artKey: String? = null
+    private var controlsJob: Job? = null
+    private var pendingControls: PendingControls? = null
+    private var sessionSequence = 0L
+    private var foregroundSession = Long.MAX_VALUE
+    private var estimate: Estimate? = null
+    private var autoFailures = 0
+    private data class Estimate(val trackId: Long, val trackAt: Long, val positionMs: Long,
+                                val receivedElapsed: Long, val sourceAt: Long)
+    private data class PendingControls(val request: ControlsProtocol.Request, val nodeId: String,
+                                       val result: CompletableDeferred<ControlsProtocol.Result>)
     @Volatile private var cleared = false
 
     private data class PendingTest(
@@ -120,6 +143,8 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                     }.await()
                 capabilities.addListener(this@CommunicationViewModel, VisualProtocol.CAPABILITY)
                     .addOnSuccessListener { if (cleared) capabilities.removeListener(this@CommunicationViewModel, VisualProtocol.CAPABILITY) }.await()
+                capabilities.addListener(this@CommunicationViewModel, ControlsProtocol.CAPABILITY)
+                    .addOnSuccessListener { if (cleared) capabilities.removeListener(this@CommunicationViewModel, ControlsProtocol.CAPABILITY) }.await()
                 dataClient.addListener(this@CommunicationViewModel)
                     .addOnSuccessListener { if (cleared) dataClient.removeListener(this@CommunicationViewModel) }
                     .await()
@@ -155,7 +180,8 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                 val playerNodes = capabilities.getCapability(PlayerProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
                 val metadataNodes = capabilities.getCapability(NowPlayingProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
                 val visualNodes = capabilities.getCapability(VisualProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
-                listOf(testNodes, playerNodes, metadataNodes, visualNodes)
+                val controlsNodes = capabilities.getCapability(ControlsProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
+                listOf(testNodes, playerNodes, metadataNodes, visualNodes, controlsNodes)
             }
             nodes = discovery[0]
             val phone = nodes.sortedWith(compareByDescending<Node> { it.isNearby }.thenBy { it.id }).firstOrNull()
@@ -164,13 +190,17 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                     nowPlaying = NowPlayingProtocol.Snapshot(), artwork = null, syncStage = null, syncNotice = SyncNotice.IDLE) }
                 artJob?.cancel()
                 artKey = null
+                estimate = null
+                mutableState.update { it.copy(controls = ControlsProtocol.Snapshot(), estimatedPositionMs = null,
+                    controlsStage = null, controlsAction = null, controlsFailed = false) }
             }
             selectedPhoneId = phone?.id
             mutableState.update {
                 it.copy(connection = if (nodes.isEmpty()) Connection.UNAVAILABLE else Connection.AVAILABLE,
                     playerAvailable = discovery[1].any { node -> node.id == phone?.id },
                     metadataAvailable = discovery[2].any { node -> node.id == phone?.id },
-                    visualAvailable = discovery[3].any { node -> node.id == phone?.id })
+                    visualAvailable = discovery[3].any { node -> node.id == phone?.id },
+                    controlsAvailable = discovery[4].any { node -> node.id == phone?.id })
             }
             // Prefere o celular próximo; escolha determinística se houver mais de um.
             phone
@@ -228,6 +258,15 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
     }
 
     override fun onMessageReceived(event: MessageEvent) {
+        if (event.path == ControlsProtocol.RESULT_PATH) {
+            val result = ControlsProtocol.decodeResult(event.data) ?: return
+            val source = event.sourceNodeId
+            viewModelScope.launch {
+                val pending = pendingControls ?: return@launch
+                if (pending.nodeId == source && pending.request == result.request) pending.result.complete(result)
+            }
+            return
+        }
         if (event.path == VisualProtocol.RESULT_PATH) {
             val result = VisualProtocol.decodeResult(event.data) ?: return
             val source = event.sourceNodeId
@@ -271,11 +310,129 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
 
     override fun onCapabilityChanged(info: CapabilityInfo) {
         if (info.name in setOf(TestProtocol.CAPABILITY, PlayerProtocol.CAPABILITY, NowPlayingProtocol.CAPABILITY,
-                VisualProtocol.CAPABILITY)) refreshConnection()
+                VisualProtocol.CAPABILITY, ControlsProtocol.CAPABILITY)) refreshConnection()
     }
 
     /** Ao sair da tela, não deixa um teste antigo continuar em segundo plano. */
-    fun cancelTest() { testJob?.cancel(); playerJob?.cancel(); syncJob?.cancel(); seekJob?.cancel(); artJob?.cancel(); artKey = null }
+    fun cancelTest() { testJob?.cancel(); playerJob?.cancel(); syncJob?.cancel(); seekJob?.cancel(); artJob?.cancel(); controlsJob?.cancel(); artKey = null }
+
+    fun sendAdditionalControl(action: ControlsProtocol.Action) {
+        if (mutableState.value.busy) return
+        autoFailures = 0
+        mutableState.update { it.copy(autoUpdatesFailed = false) }
+        controlsJob = viewModelScope.launch { requestControls(action, automatic = false) }
+    }
+
+    private suspend fun requestControls(action: ControlsProtocol.Action, automatic: Boolean): Boolean? {
+        val initial = mutableState.value
+        if (initial.busy) return null
+        val node = selectedPhoneId ?: return false
+        val session = foregroundSession
+        if (!initial.controlsAvailable || initial.connection != Connection.AVAILABLE) return false
+        mutableState.update { it.copy(busy = true,
+            controlsStage = if (automatic || action == ControlsProtocol.Action.QUERY) it.controlsStage else null,
+            controlsAction = if (automatic || action == ControlsProtocol.Action.QUERY) it.controlsAction else action,
+            controlsFailed = if (automatic) it.controlsFailed else false) }
+        return try {
+            withTimeout(12_000) {
+                val request = ControlsProtocol.Request(UUID.randomUUID().toString(), action)
+                val pending = PendingControls(request, node, CompletableDeferred())
+                pendingControls = pending
+                messages.sendMessage(node, ControlsProtocol.PATH, ControlsProtocol.encode(request)).await()
+                val result = pending.result.await()
+                check(node == selectedPhoneId)
+                mutableState.update {
+                    val old = it.controls
+                    val fresh = result.snapshot
+                    val modes = if (fresh.modesAt >= old.modesAt) fresh else
+                        fresh.copy(shuffle = old.shuffle, repeat = old.repeat, modesAt = old.modesAt)
+                    it.copy(controls = if (fresh.volumeAt >= old.volumeAt) modes else modes.copy(
+                        volume = old.volume, minimum = old.minimum, maximum = old.maximum,
+                        fixed = old.fixed, volumeAt = old.volumeAt),
+                        controlsStage = if (action == ControlsProtocol.Action.QUERY) it.controlsStage else result.stage)
+                }
+                if (action == ControlsProtocol.Action.QUERY) {
+                    loadPlayerState(node)
+                    val report = result.position
+                    val current = mutableState.value
+                    if (report != null && session == foregroundSession && session != Long.MAX_VALUE &&
+                        current.playerSnapshot.trackId == report.trackId && current.playerSnapshot.trackReportedAt == report.trackAt &&
+                        current.playerSnapshot.state == PlayerProtocol.State.PLAYING &&
+                        NowPlayingProtocol.matchesTrack(current.nowPlaying, report.trackId, report.trackAt)) {
+                        val latest = current.nowPlaying
+                        val useLatest = latest.positionAt > report.positionAt && latest.positionMs >= 0
+                        val base = if (useLatest) latest.positionMs else report.positionMs
+                        val at = if (useLatest) latest.positionAt else report.positionAt
+                        estimate = Estimate(report.trackId, report.trackAt, base, SystemClock.elapsedRealtime(), at)
+                        mutableState.update { it.copy(nowPlaying = if (useLatest) latest else latest.copy(
+                            positionMs = report.positionMs, positionAt = report.positionAt, durationMs = report.durationMs)) }
+                    }
+                }
+                result.stage !in setOf(ControlsProtocol.Stage.ERROR, ControlsProtocol.Stage.UNAVAILABLE)
+            }
+        } catch (cancelled: CancellationException) {
+            if (!automatic) mutableState.update { it.copy(controlsFailed = true) }
+            if (cancelled !is TimeoutCancellationException) throw cancelled
+            false
+        } catch (_: Exception) {
+            if (!automatic) mutableState.update { it.copy(controlsFailed = true) }
+            false
+        } finally { pendingControls = null; mutableState.update { it.copy(busy = false) } }
+    }
+
+    /** Executado por repeatOnLifecycle(RESUMED); não mantém a tela ligada. */
+    suspend fun runForegroundUpdates(): Unit = coroutineScope {
+        val power = getApplication<Application>().getSystemService(PowerManager::class.java)
+        foregroundSession = ++sessionSequence
+        autoFailures = 0
+        var nextQuery = SystemClock.elapsedRealtime() + 1500
+        var queryJob: Job? = null
+        var previouslyPlaying = false
+        try {
+            while (isActive) {
+                val interactive = power.isInteractive
+                if (!interactive) {
+                    queryJob?.cancel()
+                    queryJob = null
+                    estimate = null
+                    foregroundSession = Long.MAX_VALUE
+                    mutableState.update { it.copy(estimatedPositionMs = null, autoUpdatesActive = false) }
+                } else {
+                    if (foregroundSession == Long.MAX_VALUE) {
+                        foregroundSession = ++sessionSequence
+                        nextQuery = 0
+                    }
+                    val current = mutableState.value
+                    mutableState.update { it.copy(autoUpdatesActive = current.controlsAvailable &&
+                        current.connection == Connection.AVAILABLE && autoFailures < 2,
+                        autoUpdatesFailed = autoFailures >= 2) }
+                    val now = SystemClock.elapsedRealtime()
+                    val anchor = estimate
+                    val playing = current.playerSnapshot.state == PlayerProtocol.State.PLAYING
+                    if (playing && !previouslyPlaying) nextQuery = 0
+                    previouslyPlaying = playing
+                    val predicted = if (anchor != null && playing && current.nowPlaying.durationMs > 0 && current.connection == Connection.AVAILABLE &&
+                        anchor.trackId == current.playerSnapshot.trackId && anchor.trackAt == current.playerSnapshot.trackReportedAt)
+                        ControlsProtocol.estimatedPosition(anchor.positionMs, current.nowPlaying.durationMs, now - anchor.receivedElapsed) else null
+                    mutableState.update { it.copy(estimatedPositionMs = predicted) }
+                    if (now >= nextQuery && queryJob?.isActive != true && autoFailures < 2 && current.controlsAvailable &&
+                        current.connection == Connection.AVAILABLE && !current.busy) {
+                        nextQuery = now + ControlsProtocol.AUTO_INTERVAL_MS
+                        queryJob = launch {
+                            val result = requestControls(ControlsProtocol.Action.QUERY, automatic = true)
+                            if (result != null) autoFailures = if (result) 0 else autoFailures + 1
+                        }
+                    }
+                }
+                delay(1000)
+            }
+        } finally {
+            queryJob?.cancel()
+            estimate = null
+            foregroundSession = Long.MAX_VALUE
+            mutableState.update { it.copy(estimatedPositionMs = null, autoUpdatesActive = false) }
+        }
+    }
 
     fun seekTo(seconds: Int, trackId: Long, trackAt: Long) {
         val state = mutableState.value
@@ -305,9 +462,11 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    /** Somente o botão Atualizar solicita POS_SYNC; callbacks de conexão apenas leem cache. */
+    /** Atualização manual de posição/capa; callbacks de conexão apenas leem cache. */
     fun refreshNowPlaying() {
         if (mutableState.value.busy) return
+        autoFailures = 0
+        mutableState.update { it.copy(autoUpdatesFailed = false) }
         mutableState.update { it.copy(busy = true, syncStage = null, syncNotice = SyncNotice.LOADING) }
         syncJob = viewModelScope.launch {
             try {
@@ -335,6 +494,8 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
             } finally {
                 pendingSync = null
                 mutableState.update { it.copy(busy = false) }
+                if (mutableState.value.controlsAvailable && foregroundSession != Long.MAX_VALUE &&
+                    kotlinx.coroutines.currentCoroutineContext().isActive) sendAdditionalControl(ControlsProtocol.Action.QUERY)
             }
         }
     }
@@ -379,6 +540,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         val current = mutableState.value.playerSnapshot
         if (snapshot.reportedAt >= current.reportedAt && snapshot.trackReportedAt >= current.trackReportedAt) {
             val changed = snapshot.trackId != current.trackId || snapshot.trackReportedAt != current.trackReportedAt
+            if (changed || snapshot.state != PlayerProtocol.State.PLAYING) estimate = null
             if (changed) { artJob?.cancel(); artKey = null }
             mutableState.update { it.copy(playerSnapshot = snapshot, artwork = if (changed) null else it.artwork,
                 seekStage = if (changed) null else it.seekStage) }
@@ -418,7 +580,14 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         if (!NowPlayingProtocol.matchesTrack(metadata, currentTrack.trackId, currentTrack.trackReportedAt)) return
         val merged = if (metadata.trackId == state.nowPlaying.trackId && metadata.positionAt < state.nowPlaying.positionAt)
             metadata.copy(positionMs = state.nowPlaying.positionMs, positionAt = state.nowPlaying.positionAt) else metadata
-        mutableState.update { it.copy(nowPlaying = merged) }
+        val anchor = estimate
+        if (anchor != null && merged.positionAt > anchor.sourceAt && foregroundSession != Long.MAX_VALUE &&
+            currentTrack.state == PlayerProtocol.State.PLAYING && merged.positionMs >= 0 &&
+            anchor.trackId == currentTrack.trackId && anchor.trackAt == currentTrack.trackReportedAt) {
+            estimate = Estimate(currentTrack.trackId, currentTrack.trackReportedAt, merged.positionMs,
+                SystemClock.elapsedRealtime(), merged.positionAt)
+        }
+        mutableState.update { it.copy(nowPlaying = merged, estimatedPositionMs = if (estimate == null) null else it.estimatedPositionMs) }
     }
 
     override fun onDataChanged(events: DataEventBuffer) {
@@ -468,6 +637,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         capabilities.removeListener(this, PlayerProtocol.CAPABILITY)
         capabilities.removeListener(this, NowPlayingProtocol.CAPABILITY)
         capabilities.removeListener(this, VisualProtocol.CAPABILITY)
+        capabilities.removeListener(this, ControlsProtocol.CAPABILITY)
         dataClient.removeListener(this)
         super.onCleared()
     }

@@ -1,4 +1,42 @@
 <resources>
+    <string name="controls_title">Mais controles</string>
+    <string name="controls_update_companion">Atualize o Companion para 0.5 e confira a conexão.</string>
+    <string name="controls_unknown">não informado</string>
+    <string name="controls_shuffle_state">Aleatório informado: %1$s</string>
+    <string name="controls_repeat_state">Repetição informada: %1$s</string>
+    <string name="controls_shuffle_off">Desativar aleatório</string>
+    <string name="controls_shuffle_songs">Misturar músicas</string>
+    <string name="controls_repeat_off">Desativar repetição</string>
+    <string name="controls_repeat_category">Repetir categoria</string>
+    <string name="controls_repeat_song">Repetir música</string>
+    <string name="controls_modes_time">Modos informados em %1$s</string>
+    <string name="controls_modes_unknown">Sem informe de modos. Confira o Poweramp após selecionar.</string>
+    <string name="controls_media_title">Volume de mídia do celular</string>
+    <string name="controls_volume_value">Última leitura: %1$d de %2$d</string>
+    <string name="controls_volume_down">Vol −</string>
+    <string name="controls_volume_up">Vol +</string>
+    <string name="controls_volume_scope">Altera a mídia do celular, compartilhada com outros apps de áudio.</string>
+    <string name="controls_volume_fixed">O Android informa volume fixo nesta saída.</string>
+    <string name="controls_confirmed">O destino do último comando foi informado.</string>
+    <string name="controls_requested">Comando solicitado; alteração ainda não confirmada.</string>
+    <string name="controls_unavailable">Controle indisponível nesta configuração.</string>
+    <string name="controls_failed">Sem confirmação do controle. Confira o celular e tente novamente.</string>
+    <string name="controls_hint">Selecione um modo ou ajuste o volume de mídia.</string>
+    <string name="controls_read">Consultar controles</string>
+    <string name="controls_position_estimated">Posição estimada entre informes; limite de 30 segundos.</string>
+    <string name="controls_estimated_time">≈ %1$s / %2$s</string>
+    <string name="controls_reported_time">%1$s / %2$s</string>
+    <string name="controls_estimated_description">Posição estimada: %1$s / %2$s</string>
+    <string name="controls_auto_active">Consulta automática com a tela ativa.</string>
+    <string name="controls_auto_failed">Atualização automática suspensa. Toque Atualizar para tentar novamente.</string>
+    <string-array name="controls_shuffle_modes">
+        <item>desativado</item><item>todas as músicas</item><item>músicas da categoria</item>
+        <item>categorias</item><item>músicas e categorias</item>
+    </string-array>
+    <string-array name="controls_repeat_modes">
+        <item>desativada</item><item>categoria</item><item>avançar categorias</item>
+        <item>música</item><item>uma música e pausar</item><item>avançar categorias e parar</item>
+    </string-array>
     <string name="visual_back">Voltar</string>
     <string name="visual_connected">Celular conectado</string>
     <string name="visual_disconnected">Sem conexão confirmada</string>

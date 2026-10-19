@@ -1,6 +1,6 @@
 # Validação das etapas
 
-**Etapa atual: versão 0.4.** Use o [roteiro de capa, progresso e seek](V0_4.md#teste-nos-emuladores-atuais). O usuário confirmou os testes dos botões da versão 0.3 e autorizou a próxima etapa. A matriz física da versão 0.2 continua útil para os cenários de conexão e processo ainda não documentados como executados. As seções anteriores permanecem como histórico.
+**Etapa atual: versão 0.5.** Use o [roteiro de modos, volume e atualização automática](V0_5.md#teste-nos-emuladores). O usuário confirmou os testes da versão 0.4 e autorizou a próxima etapa. A matriz física da versão 0.2 continua útil para os cenários de conexão e processo ainda não documentados como executados. As seções anteriores permanecem como histórico.
 
 ## Estado
 
@@ -190,3 +190,21 @@ Posteriormente, o usuário confirmou que todos os botões funcionaram na comunic
 Durante a investigação, o Android apresentou Poweramp isn't responding. O log am_anr registrou timeout de foco da interface do Poweramp; também havia um timeout separado do launcher. A opção Aguardar permitiu ler a posição 0:24, mas o aviso reapareceu. Após encerrar pelo diálogo e reabrir o Poweramp, a interface respondeu e os testes de biblioteca/capa prosseguiram. A causa não foi estabelecida; não atribuir o aviso ao Remote nem considerar esse cenário estabilizado. Registrar novamente se ocorrer na validação do usuário ou nos aparelhos físicos.
 
 Permanecem pendentes a aprovação do usuário da versão 0.4, fonte ampliada, matriz completa de desconexão/reconexão e processos, troca concorrente durante seek em integração e testes físicos no S23+/Watch 7. O teste local de referência antiga não substitui a simulação dessa corrida nos aparelhos. O roteiro está em [V0_4.md](V0_4.md).
+
+Posteriormente, o usuário confirmou que os testes estão de acordo e autorizou a próxima etapa. Essa aprovação da versão 0.4 não comprova os cenários físicos e de processo ainda não documentados como executados.
+
+## Versão 0.5 — validação executada em 18/10/2026
+
+- API consultada: PowerampAPI.java (SHUFFLE=9, REPEAT=8, valores dos modos e limites do broadcast PLAYING_MODE_CHANGED); AudioManager oficial para STREAM_MUSIC e volume fixo; documentação Android de ciclo de vida e coroutines.
+- Comando final: `gradlew.bat :mobile:assembleDebug :wear:assembleDebug :mobile:testDebugUnitTest :wear:testDebugUnitTest :mobile:lintDebug :wear:lintDebug --console=plain`.
+- Resultado: BUILD SUCCESSFUL em 2m; 102 tarefas, 31 executadas e 71 atualizadas. Após essa execução, somente comentários e documentação foram ajustados.
+- Relatórios JUnit conferidos: 46 testes por módulo, 92 ao todo, sem falhas ou erros. Por módulo: 9 de ControlsProtocol, 15 de NowPlayingProtocol, 10 de PlayerProtocol, 5 de TestProtocol e 7 de VisualProtocol. Os novos casos incluem posição correlacionada sem depender de relógios alinhados, comandos/resultados inválidos, índices de volume, duração desconhecida, limite de 30 segundos e proteção contra overflow na estimativa.
+- Lint: zero erros, 16 avisos no mobile e 18 no wear. Os relatórios HTML/XML ficam em build/reports de cada módulo. Os avisos não foram suprimidos.
+- APKs finais instalados com Success nos emuladores emulator-5554 e emulator-5556. Aberturas retornaram Status: ok. O relógio descobriu o Companion e mostrou faixa, artista, capa e posição. O Poweramp nativo também abriu no celular.
+- A página Mais controles foi aberta e inspecionada visualmente na implementação inicial. O primeiro informe mostrou aleatório e repetição desativados. Após tocar Misturar músicas, o texto passou a Aleatório informado: músicas da categoria. Depois de Desativar aleatório, foi novamente observado desativado. Esses testes antecederam o ajuste final do payload de posição; a implementação dos comandos de modos permaneceu a mesma.
+- Volume de mídia do emulador lido por dumpsys audio antes e ao fim: mínimo 0, máximo 15 e nível 5, saída speaker. Os botões de volume não chegaram a ser acionados com sucesso na automação; não registrar alteração/restauração de volume como teste aprovado.
+- As tentativas de automação seguintes não localizaram os botões esperados. A investigação mostrou capturas inteiramente pretas do relógio, apesar de a hierarquia ainda conter os controles. O mesmo ocorreu no launcher após o botão lateral. dumpsys informou display ON, teatro desativado e Activity do Remote retomada; a causa não foi estabelecida. Reabrir apenas o Remote por force-stop/am start não recuperou as capturas. Não atribuir essa ocorrência ao aplicativo sem evidência adicional.
+- Captura inicial inspecionada: wear/build/reports/controls-v05.png. Capturas pretas e hierarquias de diagnóstico também ficaram em build/reports ou no armazenamento temporário dos emuladores, fora do Git.
+- git diff --check executado sem erros; paridade dos protocolos/testes v5 conferida, diferindo apenas pelo package.
+
+Permanecem pendentes: testes manuais de repeat, volume, avanço estimado e consultas periódicas no APK final; interrupção ao apagar/sair da tela; suspensão após falhas/reconexão; rotas Bluetooth/volume fixo; e validação física no S23+/Watch 7. Testes puros de cálculo e inspeção do código não comprovam o ciclo de vida nem a integração real desses cenários. O roteiro está em [V0_5.md](V0_5.md).

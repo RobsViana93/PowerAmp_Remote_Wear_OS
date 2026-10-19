@@ -12,7 +12,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** Consulta oficial POS_SYNC, somente por Atualizar; sem polling ou serviço permanente. */
+/** Consulta pontual POS_SYNC usada na atualização manual, seek e consultas com a tela ativa. */
 class PowerampPositionSync(private val context: Context) {
     fun request(): SyncStage {
         try {

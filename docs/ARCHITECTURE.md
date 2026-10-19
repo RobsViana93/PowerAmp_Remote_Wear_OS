@@ -61,3 +61,9 @@ O botão Atualizar solicita a consulta oficial POS_SYNC. PowerampPositionSync re
 NowPlayingScreen, na pasta presentation do wear, reúne a apresentação do player e o editor local da posição. Os diagnósticos anteriores continuam acessíveis em Detalhes e teste. VisualProtocol define seek em segundos e os resultados correlacionados; PowerampSeek verifica a referência da faixa, envia o comando oficial e consulta a posição posterior. A barra usa a última posição informada, sem ticker.
 
 AlbumArtPublisher lê a imagem pelo provedor oficial da capa atual, limita leitura e resolução e publica um Asset em um DataItem separado, com ID e horário de mudança da faixa. A publicação é serializada por Mutex. O relógio limpa a capa ao mudar de faixa e confere a associação antes e depois da decodificação. Estado e imagem podem chegar em qualquer ordem; o carregamento também consulta o cache sincronizado. Veja [V0_4.md](V0_4.md).
+
+## Arquitetura da versão 0.5
+
+ControlsProtocol define ações explícitas de modos, leitura e volume, com resposta por UUID/nó/ação. AdditionalControls traduz os modos para a API pública, registra um receiver temporário e lê o último evento sticky. Modos não confirmados continuam classificados como solicitados. O volume é AudioManager.STREAM_MUSIC do celular e exige apenas MODIFY_AUDIO_SETTINGS. Não interfere em toque, alarme ou equalizador.
+
+AdditionalControlsScreen apresenta os controles secundários. repeatOnLifecycle(RESUMED) gerencia consultas espaçadas e estimativa local; PowerManager.isInteractive impede consultas da rotina com a tela apagada. A estimativa começa com uma posição nova em resposta a uma consulta v5 correlacionada e confere a referência da faixa. Usa tempo monotônico local, sem comparar relógios de parede dos dois dispositivos. O cálculo é limitado a 30 segundos e ao fim da música. Não há polling permanente no celular nem mensagem a cada segundo. Veja [V0_5.md](V0_5.md).

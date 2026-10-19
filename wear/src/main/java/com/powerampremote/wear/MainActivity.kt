@@ -35,6 +35,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.powerampremote.wear.communication.NowPlayingProtocol
 import com.powerampremote.wear.communication.SyncNotice
 import com.powerampremote.wear.presentation.NowPlayingScreen
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
 
 /** A Activity apresenta a tela; o ViewModel mantém o estado da comunicação. */
 class MainActivity : ComponentActivity() {
@@ -47,11 +51,14 @@ class MainActivity : ComponentActivity() {
             val state by communication.state.collectAsStateWithLifecycle()
             MaterialTheme {
                 NowPlayingScreen(state, communication::sendPlayerCommand, communication::refreshNowPlaying,
-                    communication::seekTo) {
+                    communication::seekTo, communication::sendAdditionalControl) {
                     CommunicationScreen(state, communication::sendTest, communication::refreshNowPlaying,
                         communication::sendPlayerCommand)
                 }
             }
+        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) { communication.runForegroundUpdates() }
         }
     }
 

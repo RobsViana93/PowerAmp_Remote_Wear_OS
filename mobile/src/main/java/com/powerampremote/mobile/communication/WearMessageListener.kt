@@ -16,7 +16,25 @@ class WearMessageListener : WearableListenerService() {
     // O callback é serializado pelo serviço. Evita repetir um mesmo pedido nesta instância.
     private val completed = LinkedHashMap<String, PlayerProtocol.Result>()
     private val completedSeeks = LinkedHashMap<String, Pair<VisualProtocol.Seek, VisualProtocol.Result>>()
+    private val completedControls = LinkedHashMap<String, ControlsProtocol.Result>()
     override fun onMessageReceived(event: MessageEvent) {
+        if (event.path == ControlsProtocol.PATH) {
+            val request = ControlsProtocol.decode(event.data) ?: return
+            val key = "${event.sourceNodeId}:${request.id}"
+            val previous = completedControls[key]
+            if (previous != null && previous.request != request) return
+            val result = previous ?: com.powerampremote.mobile.poweramp.AdditionalControls(this).execute(request)
+            completedControls[key] = result
+            if (completedControls.size > 32) completedControls.remove(completedControls.keys.first())
+            try {
+                // A resposta do controle não depende de a transferência da capa terminar.
+                Tasks.await(Wearable.getMessageClient(this).sendMessage(event.sourceNodeId,
+                    ControlsProtocol.RESULT_PATH, ControlsProtocol.encodeResult(result)), 2, TimeUnit.SECONDS)
+                runBlocking { withTimeout(3_000) { PowerampRepository.publish(this@WearMessageListener) } }
+            } catch (interrupted: InterruptedException) { Thread.currentThread().interrupt() }
+            catch (_: Exception) { /* O relógio limita a espera. */ }
+            return
+        }
         if (event.path == VisualProtocol.SEEK_PATH) {
             val request = VisualProtocol.decode(event.data) ?: return
             val key = "${event.sourceNodeId}:${request.id}"
