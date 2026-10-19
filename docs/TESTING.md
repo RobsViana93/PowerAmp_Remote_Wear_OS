@@ -236,3 +236,9 @@ $adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
 Aguarde o relógio concluir a inicialização, acorde a tela pelo botão lateral e abra o Remote. A reinicialização preserva o armazenamento dos aplicativos.
 
 Reprodução, navegação e avanço estimado foram observados após a recuperação. Permanecem pendentes a matriz completa de interrupção/retomada da atualização automática, repeat, volume, reconexão e dispositivos físicos. Não houve nova execução dos testes locais/lint: a implementação permaneceu a de 6e3219c, com os 92 testes anteriormente aprovados.
+
+## Aprovação da versão 0.5 e pesquisa das etapas seguintes
+
+Após os testes de recuperação descritos acima, o usuário informou que realizou os devidos testes e autorizou a próxima etapa. A versão 0.5 fica aprovada conforme esse relato. Não foram especificados os aparelhos nem a execução individual de cada cenário; a aprovação não substitui evidências de validação física.
+
+A atualização seguinte contém pesquisa documental e planejamento em V0_6.md (equalizador) e V0_7.md (álbuns). Não há alteração de código, APK ou nova execução de Gradle nesta rodada. A consulta à biblioteca, o fluxo de autorização do Poweramp e os comandos de equalizador ainda precisam de teste integrado. Os resultados anteriores de compilação, 92 testes e lint continuam sendo os da implementação 0.5.

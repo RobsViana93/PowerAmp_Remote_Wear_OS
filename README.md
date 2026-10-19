@@ -2,7 +2,13 @@
 
 Projeto pessoal em Kotlin para Galaxy S23+ e Galaxy Watch 7. O áudio continuará no celular.
 
-## Etapa atual: controles adicionais (0.5.0)
+## Etapa atual: 0.5 aprovada; pesquisa da próxima versão
+
+O usuário concluiu os testes após a recuperação da tela do relógio e aprovou a versão 0.5. A continuação começa pela pesquisa do [equalizador — etapa 0.6](docs/V0_6.md). A pedido do usuário, a [navegação por álbuns — etapa 0.7](docs/V0_7.md) ganhou um plano próprio, da autorização de acesso à biblioteca até a seleção de álbum/faixa pelo relógio. A pesquisa documental está registrada; essas duas funcionalidades ainda não estão implementadas. Os APKs permanecem na versão 0.5.0.
+
+O relato de aprovação não especifica os dispositivos nem cada cenário executado. As pendências descritas no histórico abaixo correspondem à verificação feita pelo Codex antes dessa aprovação.
+
+## Histórico: controles adicionais (0.5.0)
 
 O usuário aprovou os testes da versão 0.4 e autorizou a próxima etapa. A versão 0.5 acrescenta shuffle, repeat, volume de mídia do celular e consultas automáticas enquanto a tela do relógio está ativa. A posição estimada aparece com ≈ e tem limite de avanço. Consulte [o guia da versão 0.5](docs/V0_5.md) e atualize os dois aplicativos.
 
