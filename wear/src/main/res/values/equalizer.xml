@@ -1,0 +1,16 @@
+<resources>
+    <string name="equalizer_title">Equalizador</string>
+    <string name="equalizer_on">Último informe: ligado</string>
+    <string name="equalizer_off">Último informe: desligado</string>
+    <string name="equalizer_unknown">Estado ainda não informado</string>
+    <string name="equalizer_enable">Ligar</string>
+    <string name="equalizer_disable">Desligar</string>
+    <string name="equalizer_observed">Mudança observada no Poweramp.</string>
+    <string name="equalizer_requested">Comando solicitado. Confira no Poweramp; não houve confirmação.</string>
+    <string name="equalizer_failed">Não foi possível obter o resultado. Confira a conexão e tente novamente.</string>
+    <string name="equalizer_unavailable">Poweramp não encontrado no celular.</string>
+    <string name="equalizer_read_hint">A leitura mostra o último informe recebido, que pode estar desatualizado.</string>
+    <string name="equalizer_scope">Controla as bandas do equalizador. Sem confirmação, confira o botão Equ no Poweramp do celular.</string>
+    <string name="equalizer_read">Ler último informe</string>
+    <string name="equalizer_report_time">Informe do celular: %1$s</string>
+</resources>

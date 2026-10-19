@@ -62,6 +62,10 @@ data class CommunicationState(
     val controlsStage: ControlsProtocol.Stage? = null,
     val controlsAction: ControlsProtocol.Action? = null,
     val controlsFailed: Boolean = false,
+    val equalizerAvailable: Boolean = false,
+    val equalizer: EqualizerProtocol.Snapshot = EqualizerProtocol.Snapshot(),
+    val equalizerStage: EqualizerProtocol.Stage? = null,
+    val equalizerFailed: Boolean = false,
     val estimatedPositionMs: Long? = null,
     val autoUpdatesActive: Boolean = false,
     val autoUpdatesFailed: Boolean = false
@@ -96,6 +100,10 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
     private var artKey: String? = null
     private var controlsJob: Job? = null
     private var pendingControls: PendingControls? = null
+    private var equalizerJob: Job? = null
+    private var pendingEqualizer: PendingEqualizer? = null
+    private data class PendingEqualizer(val request: EqualizerProtocol.Request, val nodeId: String,
+                                        val result: CompletableDeferred<EqualizerProtocol.Result>)
     private var sessionSequence = 0L
     private var foregroundSession = Long.MAX_VALUE
     private var estimate: Estimate? = null
@@ -145,6 +153,8 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                     .addOnSuccessListener { if (cleared) capabilities.removeListener(this@CommunicationViewModel, VisualProtocol.CAPABILITY) }.await()
                 capabilities.addListener(this@CommunicationViewModel, ControlsProtocol.CAPABILITY)
                     .addOnSuccessListener { if (cleared) capabilities.removeListener(this@CommunicationViewModel, ControlsProtocol.CAPABILITY) }.await()
+                capabilities.addListener(this@CommunicationViewModel, EqualizerProtocol.CAPABILITY)
+                    .addOnSuccessListener { if (cleared) capabilities.removeListener(this@CommunicationViewModel, EqualizerProtocol.CAPABILITY) }.await()
                 dataClient.addListener(this@CommunicationViewModel)
                     .addOnSuccessListener { if (cleared) dataClient.removeListener(this@CommunicationViewModel) }
                     .await()
@@ -181,7 +191,8 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                 val metadataNodes = capabilities.getCapability(NowPlayingProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
                 val visualNodes = capabilities.getCapability(VisualProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
                 val controlsNodes = capabilities.getCapability(ControlsProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
-                listOf(testNodes, playerNodes, metadataNodes, visualNodes, controlsNodes)
+                val equalizerNodes = capabilities.getCapability(EqualizerProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
+                listOf(testNodes, playerNodes, metadataNodes, visualNodes, controlsNodes, equalizerNodes)
             }
             nodes = discovery[0]
             val phone = nodes.sortedWith(compareByDescending<Node> { it.isNearby }.thenBy { it.id }).firstOrNull()
@@ -192,7 +203,8 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                 artKey = null
                 estimate = null
                 mutableState.update { it.copy(controls = ControlsProtocol.Snapshot(), estimatedPositionMs = null,
-                    controlsStage = null, controlsAction = null, controlsFailed = false) }
+                    controlsStage = null, controlsAction = null, controlsFailed = false,
+                    equalizer = EqualizerProtocol.Snapshot(), equalizerStage = null, equalizerFailed = false) }
             }
             selectedPhoneId = phone?.id
             mutableState.update {
@@ -200,7 +212,8 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                     playerAvailable = discovery[1].any { node -> node.id == phone?.id },
                     metadataAvailable = discovery[2].any { node -> node.id == phone?.id },
                     visualAvailable = discovery[3].any { node -> node.id == phone?.id },
-                    controlsAvailable = discovery[4].any { node -> node.id == phone?.id })
+                    controlsAvailable = discovery[4].any { node -> node.id == phone?.id },
+                    equalizerAvailable = discovery[5].any { node -> node.id == phone?.id })
             }
             // Prefere o celular próximo; escolha determinística se houver mais de um.
             phone
@@ -258,6 +271,16 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
     }
 
     override fun onMessageReceived(event: MessageEvent) {
+        if (event.path == EqualizerProtocol.RESULT_PATH) {
+            val result = EqualizerProtocol.decodeResult(event.data) ?: return
+            val source = event.sourceNodeId
+            viewModelScope.launch {
+                val pending = pendingEqualizer ?: return@launch
+                if (source == selectedPhoneId && pending.nodeId == source && pending.request == result.request)
+                    pending.result.complete(result)
+            }
+            return
+        }
         if (event.path == ControlsProtocol.RESULT_PATH) {
             val result = ControlsProtocol.decodeResult(event.data) ?: return
             val source = event.sourceNodeId
@@ -310,11 +333,42 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
 
     override fun onCapabilityChanged(info: CapabilityInfo) {
         if (info.name in setOf(TestProtocol.CAPABILITY, PlayerProtocol.CAPABILITY, NowPlayingProtocol.CAPABILITY,
-                VisualProtocol.CAPABILITY, ControlsProtocol.CAPABILITY)) refreshConnection()
+                VisualProtocol.CAPABILITY, ControlsProtocol.CAPABILITY, EqualizerProtocol.CAPABILITY)) refreshConnection()
     }
 
     /** Ao sair da tela, não deixa um teste antigo continuar em segundo plano. */
-    fun cancelTest() { testJob?.cancel(); playerJob?.cancel(); syncJob?.cancel(); seekJob?.cancel(); artJob?.cancel(); controlsJob?.cancel(); artKey = null }
+    fun cancelTest() { testJob?.cancel(); playerJob?.cancel(); syncJob?.cancel(); seekJob?.cancel(); artJob?.cancel(); controlsJob?.cancel(); equalizerJob?.cancel(); artKey = null }
+
+    fun sendEqualizerAction(action: EqualizerProtocol.Action) {
+        if (mutableState.value.busy) return
+        mutableState.update { it.copy(busy = true, equalizerStage = null, equalizerFailed = false) }
+        equalizerJob = viewModelScope.launch {
+            try {
+                withTimeout(12_000) {
+                    check(ensureListeners())
+                    val phone = queryPhone()
+                    check(phone != null && mutableState.value.equalizerAvailable)
+                    val request = EqualizerProtocol.Request(UUID.randomUUID().toString(), action)
+                    val waiting = PendingEqualizer(request, phone.id, CompletableDeferred())
+                    pendingEqualizer = waiting
+                    messages.sendMessage(phone.id, EqualizerProtocol.PATH, EqualizerProtocol.encode(request)).await()
+                    val result = waiting.result.await()
+                    if (selectedPhoneId == phone.id) mutableState.update {
+                        it.copy(equalizer = if (result.snapshot.reportedAt >= it.equalizer.reportedAt)
+                            result.snapshot else it.equalizer, equalizerStage = result.stage)
+                    }
+                }
+            } catch (cancelled: CancellationException) {
+                mutableState.update { it.copy(equalizerFailed = true) }
+                if (cancelled !is TimeoutCancellationException) throw cancelled
+            } catch (_: Exception) {
+                mutableState.update { it.copy(equalizerFailed = true) }
+            } finally {
+                pendingEqualizer = null
+                mutableState.update { it.copy(busy = false) }
+            }
+        }
+    }
 
     fun sendAdditionalControl(action: ControlsProtocol.Action) {
         if (mutableState.value.busy) return
@@ -638,6 +692,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         capabilities.removeListener(this, NowPlayingProtocol.CAPABILITY)
         capabilities.removeListener(this, VisualProtocol.CAPABILITY)
         capabilities.removeListener(this, ControlsProtocol.CAPABILITY)
+        capabilities.removeListener(this, EqualizerProtocol.CAPABILITY)
         dataClient.removeListener(this)
         super.onCleared()
     }

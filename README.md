@@ -2,9 +2,11 @@
 
 Projeto pessoal em Kotlin para Galaxy S23+ e Galaxy Watch 7. O áudio continuará no celular.
 
-## Etapa atual: 0.5 aprovada; pesquisa da próxima versão
+## Etapa atual: equalizador — primeira parte (0.6.0)
 
-O usuário concluiu os testes após a recuperação da tela do relógio e aprovou a versão 0.5. A continuação começa pela pesquisa do [equalizador — etapa 0.6](docs/V0_6.md). A pedido do usuário, a [navegação por álbuns — etapa 0.7](docs/V0_7.md) ganhou um plano próprio, da autorização de acesso à biblioteca até a seleção de álbum/faixa pelo relógio. A pesquisa documental está registrada; essas duas funcionalidades ainda não estão implementadas. Os APKs permanecem na versão 0.5.0.
+O usuário aprovou a versão 0.5 e autorizou a implementação do [equalizador — etapa 0.6](docs/V0_6.md). A versão 0.6.0 acrescenta a primeira parte: tela Equalizador no relógio, Ligar/Desligar e leitura do último evento recebido. O comando atua nas bandas do Poweramp; preserva Tone, preset e valores das bandas. A interface distingue mudança observada de comando sem confirmação. Atualize os dois APKs e siga o guia da etapa.
+
+Presets e edição das bandas continuam nas partes seguintes da 0.6. A [navegação por álbuns — etapa 0.7](docs/V0_7.md) tem pesquisa e plano próprios, ainda sem implementação. Os resultados efetivamente executados da 0.6 ficam em [TESTING.md](docs/TESTING.md).
 
 O relato de aprovação não especifica os dispositivos nem cada cenário executado. As pendências descritas no histórico abaixo correspondem à verificação feita pelo Codex antes dessa aprovação.
 

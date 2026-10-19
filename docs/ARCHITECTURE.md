@@ -70,4 +70,10 @@ AdditionalControlsScreen apresenta os controles secundários. repeatOnLifecycle(
 
 ## Continuação planejada após aprovação da 0.5
 
-O equalizador tem pesquisa própria em [V0_6.md](V0_6.md), incluindo a limitação de entrega do evento EQU_CHANGED e a distinção entre comando solicitado e estado observado. A biblioteca de álbuns tem pesquisa e critérios em [V0_7.md](V0_7.md): o Companion obterá autorização do Poweramp, consultará o provedor público e enviará páginas limitadas de metadados ao relógio. Paginação, colunas e seleção precisam de comprovação antes da implementação. Essas responsabilidades são planejadas; não há novas classes, protocolos ou dependências nesta atualização.
+O equalizador tem pesquisa própria em [V0_6.md](V0_6.md), incluindo a limitação de entrega do evento EQU_CHANGED e a distinção entre comando solicitado e estado observado. A biblioteca de álbuns tem pesquisa e critérios em [V0_7.md](V0_7.md): o Companion obterá autorização do Poweramp, consultará o provedor público e enviará páginas limitadas de metadados ao relógio. Paginação, colunas e seleção precisam de comprovação antes da implementação da biblioteca.
+
+## Arquitetura da versão 0.6 — parte 0.6a
+
+EqualizerProtocol define READ/ENABLE/DISABLE, estados UNKNOWN/OFF/ON e resultados com UUID/ação. O caminho v6 e sua capability são separados dos controles anteriores. EqualizerController envia o comando público 53 com apenas equ e observa EQU_CHANGED por até dois segundos, removendo o receiver no finally. O último evento válido fica em SharedPreferences; READ lê esse cache e não consulta o player. Eventos ausentes não viram desligado nem confirmação. Não há receiver permanente, serviço em primeiro plano ou novas permissões.
+
+WearMessageListener mantém até 32 respostas para pedidos repetidos por nó/UUID nesta instância. CommunicationViewModel espera por no máximo 12 segundos e aceita somente resposta do nó selecionado com UUID e ação correspondentes. EqualizerScreen mostra o último estado e sua data, permite selecionar destinos explícitos e informa quando a mudança não foi observada. Sair do aplicativo cancela a espera local; um comando já enviado pode terminar no celular. Presets e bandas ainda não têm controles.

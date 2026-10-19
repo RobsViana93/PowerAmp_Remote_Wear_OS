@@ -242,3 +242,32 @@ Reprodução, navegação e avanço estimado foram observados após a recuperaç
 Após os testes de recuperação descritos acima, o usuário informou que realizou os devidos testes e autorizou a próxima etapa. A versão 0.5 fica aprovada conforme esse relato. Não foram especificados os aparelhos nem a execução individual de cada cenário; a aprovação não substitui evidências de validação física.
 
 A atualização seguinte contém pesquisa documental e planejamento em V0_6.md (equalizador) e V0_7.md (álbuns). Não há alteração de código, APK ou nova execução de Gradle nesta rodada. A consulta à biblioteca, o fluxo de autorização do Poweramp e os comandos de equalizador ainda precisam de teste integrado. Os resultados anteriores de compilação, 92 testes e lint continuam sendo os da implementação 0.5.
+
+## Versão 0.6.0 — primeira parte do equalizador (0.6a)
+
+Escopo: Ligar/Desligar as bandas do equalizador pelo relógio e ler o último evento capturado durante um pedido. Presets, edição de bandas e biblioteca não fazem parte deste APK. O guia está em [V0_6.md](V0_6.md).
+
+Validação de código executada:
+
+- Comando conjunto de assembleDebug, testDebugUnitTest e lintDebug nos dois módulos: BUILD SUCCESSFUL em 4m27s.
+- Após reforçar a checagem de eventos inválidos, mobile:assembleDebug, mobile:testDebugUnitTest e mobile:lintDebug passaram novamente em 1m08s.
+- Após compactar a apresentação do equalizador, wear:assembleDebug, wear:testDebugUnitTest e wear:lintDebug passaram novamente em 1m42s.
+- Relatórios JUnit: 52 testes por módulo, total 104, sem falhas ou erros. São 12 testes novos nos dois módulos para mensagens e regras de atualização do equalizador.
+- Lint: zero erros, 17 avisos no mobile e 19 no wear. Os avisos adicionais são uma sugestão de SharedPreferences.edit KTX e o corretor inglês interpretando a palavra portuguesa Comando como erro de grafia.
+- Contratos v6 dos dois módulos conferidos quanto à paridade; git diff --check sem erros.
+
+Integração executada em emulator-5554 (celular) e emulator-5556 (relógio), com o Poweramp instalado e biblioteca do usuário:
+
+1. O comando público 53 foi explorado antes de alterar o código. equ=true mostrou as bandas e curva ativas; equ=false as desativou. O estado inicial, guardado em eq-before.xml, indicava NO DVC EQ 10 TON LMT: Equ, Tone e Limit ativos.
+2. Mobile e wear 0.6.0 foram instalados preservando dados. A instalação/primeira abertura foi lenta e o relógio mostrou conexão não confirmada; após Atualizar, o Companion foi encontrado e os metadados existentes reapareceram. Não houve a tela inteiramente preta da investigação anterior.
+3. A tela Equalizador foi aberta pelo botão do player. O estado inicial foi Estado ainda não informado. Ligar e Desligar responderam com Comando solicitado, sem confirmação. Os registros do Poweramp mostraram SET_EQU_ENABLED, emitido a partir do Companion.
+4. Com a tela do Poweramp já aberta no celular, Ligar pelo relógio fez a identificação passar a NO DVC EQ 10 TON LMT; Desligar a fez voltar a NO DVC TON LMT. Tone continuou ativo, Bass/Treble ficaram em 0% e os valores visíveis das bandas não foram editados. Uma primeira comparação após alternar a tela do celular não mostrou a ativação; a repetição com o Poweramp já visível comprovou os dois destinos. Não tratar aquela primeira comparação como aprovação.
+5. O Companion não observou EQU_CHANGED nesses pedidos, inclusive na tentativa iniciada com sua Activity visível. O relógio manteve o estado desconhecido e informou a ausência de confirmação. Isso valida o caminho de pedido sem evento; não comprova o caminho de mudança observada. Não foi inventado estado a partir do botão tocado.
+6. Ligar foi enviado novamente pelo relógio, e a tela do Poweramp confirmou NO DVC EQ 10 TON LMT, restaurando o estado inicial. Tone e Limit permaneceram ativos.
+7. A primeira inspeção visual mostrou o botão Voltar ocupando espaço no topo. Ele foi mantido ao fim da página e pelo gesto/botão Voltar do sistema; título/estado foram compactados para facilitar o acesso aos controles.
+8. O APK final do relógio foi reinstalado e inspecionado: título, estado desconhecido e os dois botões aparecem juntos na tela circular, sem rolagem inicial. Ler último informe foi acionado; a identificação NO DVC EQ 10 TON LMT continuou no Poweramp. Voltar pelo sistema retornou à tela do player com Celular conectado e os metadados/capa existentes.
+9. Após o retorno, Play foi acionado pelo relógio. A hierarquia mostrou Pause e posição estimada 0:18 / 7:50. Pause foi acionado nesse controle, e o mini player do Poweramp passou a Play, deixando a reprodução pausada. A primeira captura da hierarquia do celular durante a reprodução falhou com could not get idle state; não houve evidência de crash, e a captura seguinte após pausar funcionou. Essa verificação não substitui toda a matriz de regressão.
+
+Capturas e hierarquias locais ficam em build/reports e /sdcard dos emuladores, fora do Git: mobile/build/reports/eq-on.png, eq-off.png; wear/build/reports/eq-watch-screen.png, eq-result.png e eq-final-screen.png. Os arquivos do sistema /sdcard/eq-verify-on.xml, eq-verify-off.xml e eq-restored.xml registram a comparação do player.
+
+Permanecem pendentes: confirmação por evento real, leitura após um evento real capturado, Poweramp ausente, desconexão/reconexão durante pedido, interrupção da espera, matriz completa de regressão dos controles anteriores e validação física. Os testes unitários cobrem eventos antigos, futuros e ausentes; não comprovam a entrega do broadcast no Android. Os APKs usam versionCode 7/versionName 0.6.0.

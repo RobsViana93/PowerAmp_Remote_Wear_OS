@@ -38,12 +38,19 @@ private val Accent = Color(0xFF80CBC4)
 internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProtocol.Command) -> Unit,
                               onRefresh: () -> Unit, onSeek: (Int, Long, Long) -> Unit,
                               onAdditionalControl: (ControlsProtocol.Action) -> Unit,
+                              onEqualizer: (EqualizerProtocol.Action) -> Unit,
                               details: @Composable () -> Unit) {
     var showDetails by remember { mutableStateOf(false) }
     var showControls by remember { mutableStateOf(false) }
+    var showEqualizer by remember { mutableStateOf(false) }
     var seeking by remember(state.playerSnapshot.trackId, state.playerSnapshot.trackReportedAt) { mutableStateOf(false) }
-    BackHandler(enabled = showDetails || showControls || seeking) {
-        when { showDetails -> showDetails = false; showControls -> showControls = false; else -> seeking = false }
+    BackHandler(enabled = showDetails || showControls || showEqualizer || seeking) {
+        when { showDetails -> showDetails = false; showControls -> showControls = false
+            showEqualizer -> showEqualizer = false; else -> seeking = false }
+    }
+    if (showEqualizer) {
+        EqualizerScreen(state, onEqualizer) { showEqualizer = false }
+        return
     }
     if (showControls) {
         AdditionalControlsScreen(state, onAdditionalControl) { showControls = false }
@@ -160,6 +167,9 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
             style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
         Button(onClick = { showControls = true; onAdditionalControl(ControlsProtocol.Action.QUERY) }) {
             Text(stringResource(R.string.controls_title))
+        }
+        Button(onClick = { showEqualizer = true; onEqualizer(EqualizerProtocol.Action.READ) }) {
+            Text(stringResource(R.string.equalizer_title))
         }
         Button(onClick = { showDetails = true }) { Text(stringResource(R.string.visual_details)) }
     }
