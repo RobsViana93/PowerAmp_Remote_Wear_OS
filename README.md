@@ -6,7 +6,7 @@ Projeto pessoal em Kotlin para Galaxy S23+ e Galaxy Watch 7. O áudio continuar�
 
 O usuário aprovou os testes da versão 0.4 e autorizou a próxima etapa. A versão 0.5 acrescenta shuffle, repeat, volume de mídia do celular e consultas automáticas enquanto a tela do relógio está ativa. A posição estimada aparece com ≈ e tem limite de avanço. Consulte [o guia da versão 0.5](docs/V0_5.md) e atualize os dois aplicativos.
 
-Validação da versão 0.5: APKs compilados, 92 testes locais aprovados e lint sem erros (16 avisos no mobile e 18 no wear). Shuffle foi verificado no Poweramp real. Os testes finais de repetição, volume e avanço automático ficaram pendentes após as capturas do emulador Wear OS passarem a ficar pretas. Detalhes e limites estão em [TESTING.md](docs/TESTING.md).
+Validação da versão 0.5: APKs compilados, 92 testes locais aprovados e lint sem erros (16 avisos no mobile e 18 no wear). Shuffle foi verificado no Poweramp real. Após uma ocorrência de tela preta, a versão 0.4 também apresentou o problema na mesma sessão. Reiniciar apenas o Android do relógio recuperou a tela; a mesma 0.5 foi reinstalada e exibiu navegação e avanço automático da posição. Repetição, volume e os demais cenários continuam pendentes. Detalhes e procedimento de recuperação estão em [TESTING.md](docs/TESTING.md#tela-preta-no-relógio--comparação-e-recuperação).
 
 O usuário aprovou os testes dos botões da versão 0.3 e autorizou a versão 0.4. A etapa atual acrescenta capa por Asset, barra da última posição informada, ajuste confirmado da posição e controles agrupados na tela circular. Consulte [o guia da versão 0.4](docs/V0_4.md) para conceitos, limitações e testes. Atualize os dois aplicativos.
 

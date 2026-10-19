@@ -208,3 +208,31 @@ Posteriormente, o usuário confirmou que os testes estão de acordo e autorizou 
 - git diff --check executado sem erros; paridade dos protocolos/testes v5 conferida, diferindo apenas pelo package.
 
 Permanecem pendentes: testes manuais de repeat, volume, avanço estimado e consultas periódicas no APK final; interrupção ao apagar/sair da tela; suspensão após falhas/reconexão; rotas Bluetooth/volume fixo; e validação física no S23+/Watch 7. Testes puros de cálculo e inspeção do código não comprovam o ciclo de vida nem a integração real desses cenários. O roteiro está em [V0_5.md](V0_5.md).
+
+## Tela preta no relógio — comparação e recuperação
+
+Após o usuário confirmar que somente o relógio estava preto depois do commit 6e3219c, a comparação foi executada no emulator-5556 em 18/10/2026, horário de São Paulo:
+
+1. A versão 0.4 do commit 35dbbcc foi extraída em wear/build/regression-v04, sem mudar o checkout. Compilação isolada de :wear:assembleDebug: BUILD SUCCESSFUL em 1m57s.
+2. O APK 0.4 foi instalado com adb install -r -d, preservando os dados. dumpsys package confirmou versionCode=5 e versionName=0.4.0. A captura continuou inteiramente preta. Portanto, apenas reinstalar a versão anterior não recuperou essa sessão.
+3. Foi executado adb -s emulator-5556 reboot. Somente o Android do relógio foi reiniciado. Aplicativos, dados e pareamento foram preservados; o celular permaneceu ligado.
+4. Após sys.boot_completed=1, a 0.4 abriu e voltou a produzir uma captura colorida com título, artista, capa e controles.
+5. O APK 0.5 de 6e3219c foi reinstalado, sem alteração na implementação. Abertura retornou Status: ok e a captura voltou a conter os mesmos controles e metadados. O estado Celular conectado reapareceu.
+6. Play e rolagem voltaram a responder. Durante a reprodução de Wizard Party, uma captura mostrou ≈ 1:22 / 2:18 e Último informe: reproduzindo. Mais controles também abriu e mostrou Aleatório informado: desativado. Ao fim, a interface informou pausado.
+
+Evidências locais: wear/build/reports/regression-v04.png (preta), regression-v04-reboot.png (0.4 após reinício), regression-v05-reboot.png e regression-current.png (0.5, incluindo avanço estimado). As duas capturas após reinício continham pixels coloridos, conferidos também por leitura dos pixels do PNG. Os arquivos ficam fora do Git.
+
+O reinício recuperou o estado observado, mas a causa específica da tela preta não foi estabelecida. A sequência temporal relatada pelo usuário é válida; este teste não permite atribuir a origem ao commit nem garantir que o problema não volte. Não considerar os testes unitários como validação visual da tela. Nenhum código foi alterado nesta recuperação; o commit seguinte registra somente o diagnóstico e o procedimento.
+
+Para repetir a recuperação neste ambiente:
+
+~~~powershell
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb devices
+# Confira o serial do relógio; nesta investigação foi emulator-5556.
+& $adb -s emulator-5556 reboot
+~~~
+
+Aguarde o relógio concluir a inicialização, acorde a tela pelo botão lateral e abra o Remote. A reinicialização preserva o armazenamento dos aplicativos.
+
+Reprodução, navegação e avanço estimado foram observados após a recuperação. Permanecem pendentes a matriz completa de interrupção/retomada da atualização automática, repeat, volume, reconexão e dispositivos físicos. Não houve nova execução dos testes locais/lint: a implementação permaneceu a de 6e3219c, com os 92 testes anteriormente aprovados.
