@@ -122,6 +122,7 @@ private fun IdentificationScreen() {
                 color = Color.White, textAlign = TextAlign.Center)
         }
         Text(stringResource(R.string.player_setup), color = Color.White, textAlign = TextAlign.Center)
+        LibraryAccessPanel()
         Button(onClick = {
             try {
                 val launch = context.packageManager.getLaunchIntentForPackage(PowerampContract.PACKAGE)

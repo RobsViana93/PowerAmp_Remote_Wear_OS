@@ -1,0 +1,27 @@
+<resources>
+    <string name="library_title">Biblioteca</string>
+    <string name="library_tracks_title">Faixas do álbum</string>
+    <string name="library_play_album">Reproduzir álbum</string>
+    <string name="library_loading">Aguardando o celular…</string>
+    <string name="library_disconnected">Celular desconectado. Volte ao player e toque Atualizar.</string>
+    <string name="library_failed">Não foi possível obter o resultado. Tente atualizar a lista.</string>
+    <string name="library_denied">Abra o Companion no celular, toque Autorizar biblioteca e verifique o acesso. Depois atualize esta lista.</string>
+    <string name="library_unavailable">Poweramp não encontrado no celular.</string>
+    <string name="library_not_found">Álbum ou faixa não encontrado. Volte aos álbuns e atualize a lista.</string>
+    <string name="library_expired">Esta página expirou. Atualize a lista para começar novamente.</string>
+    <string name="library_observed">Reprodução observada no Poweramp. Abra o player para acompanhar.</string>
+    <string name="library_requested">Reprodução solicitada, sem confirmação. Confira o player.</string>
+    <string name="library_empty">Nenhum álbum encontrado na biblioteca do Poweramp.</string>
+    <string name="library_empty_album">Nenhuma faixa encontrada neste álbum.</string>
+    <string name="library_album_hint">Escolha um álbum para ver suas faixas.</string>
+    <string name="library_track_hint">Toque em uma faixa para reproduzir no celular.</string>
+    <string name="library_unknown_album">Álbum sem nome</string>
+    <string name="library_unknown_track">Faixa sem título</string>
+    <string name="library_unknown_artist">Artista não informado</string>
+    <string name="library_previous">Página anterior</string>
+    <string name="library_next">Próxima página</string>
+    <string name="library_refresh">Atualizar lista</string>
+    <string name="library_changes">Após alterar músicas ou tags no Poweramp, atualize a lista.</string>
+    <string name="library_back_albums">Voltar aos álbuns</string>
+    <string name="library_player">Ver player</string>
+</resources>

@@ -51,7 +51,8 @@ class MainActivity : ComponentActivity() {
             val state by communication.state.collectAsStateWithLifecycle()
             MaterialTheme {
                 NowPlayingScreen(state, communication::sendPlayerCommand, communication::refreshNowPlaying,
-                    communication::seekTo, communication::sendAdditionalControl, communication::sendEqualizerAction) {
+                    communication::seekTo, communication::sendAdditionalControl, communication::sendEqualizerAction,
+                    communication::libraryAction) {
                     CommunicationScreen(state, communication::sendTest, communication::refreshNowPlaying,
                         communication::sendPlayerCommand)
                 }

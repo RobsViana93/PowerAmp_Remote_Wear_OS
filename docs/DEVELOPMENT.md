@@ -42,6 +42,8 @@ Test-Path "$sdkPath\build-tools\36.0.0"
 
 ## Controle de versão
 
+Para instalar as versões de desenvolvimento no S23+ e Watch 7, consulte [INSTALL_PHYSICAL.md](INSTALL_PHYSICAL.md). O guia separa a conexão ADB de desenvolvimento do pareamento normal entre relógio e celular.
+
 O repositório Git local foi inicializado. O .gitignore exclui caminhos locais, caches e APKs. Revise git status antes de salvar mudanças. Para registrar esta etapa, depois de revisar:
 
 ~~~powershell

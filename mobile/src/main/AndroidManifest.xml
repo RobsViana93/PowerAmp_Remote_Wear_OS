@@ -14,6 +14,10 @@
         <service android:name=".communication.WearMessageListener" android:exported="true">
             <intent-filter>
                 <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data android:scheme="wear" android:host="*" android:path="/powerampremote/v7/library" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
                 <data android:scheme="wear" android:host="*" android:path="/powerampremote/v6/equalizer" />
             </intent-filter>
             <intent-filter>

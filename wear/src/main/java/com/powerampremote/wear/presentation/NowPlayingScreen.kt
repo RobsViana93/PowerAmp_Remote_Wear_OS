@@ -39,14 +39,25 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
                               onRefresh: () -> Unit, onSeek: (Int, Long, Long) -> Unit,
                               onAdditionalControl: (ControlsProtocol.Action) -> Unit,
                               onEqualizer: (EqualizerProtocol.Action) -> Unit,
+                              onLibrary: (LibraryIntent) -> Unit,
                               details: @Composable () -> Unit) {
     var showDetails by remember { mutableStateOf(false) }
     var showControls by remember { mutableStateOf(false) }
     var showEqualizer by remember { mutableStateOf(false) }
+    var showLibrary by remember { mutableStateOf(false) }
     var seeking by remember(state.playerSnapshot.trackId, state.playerSnapshot.trackReportedAt) { mutableStateOf(false) }
-    BackHandler(enabled = showDetails || showControls || showEqualizer || seeking) {
+    BackHandler(enabled = showDetails || showControls || showEqualizer || showLibrary || seeking) {
         when { showDetails -> showDetails = false; showControls -> showControls = false
+            showLibrary -> if (state.library.album != null) onLibrary(LibraryIntent.Albums)
+                else { showLibrary = false; onLibrary(LibraryIntent.Close) }
             showEqualizer -> showEqualizer = false; else -> seeking = false }
+    }
+    if (showLibrary) {
+        LibraryScreen(state, onLibrary,
+            onClose = { if (state.library.album != null) onLibrary(LibraryIntent.Albums)
+                else { showLibrary = false; onLibrary(LibraryIntent.Close) } },
+            onPlayer = { showLibrary = false; onLibrary(LibraryIntent.Close) })
+        return
     }
     if (showEqualizer) {
         EqualizerScreen(state, onEqualizer) { showEqualizer = false }
@@ -167,6 +178,9 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
             style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
         Button(onClick = { showControls = true; onAdditionalControl(ControlsProtocol.Action.QUERY) }) {
             Text(stringResource(R.string.controls_title))
+        }
+        Button(onClick = { showLibrary = true; onLibrary(LibraryIntent.Open) }, enabled = !state.busy) {
+            Text(stringResource(R.string.library_title))
         }
         Button(onClick = { showEqualizer = true; onEqualizer(EqualizerProtocol.Action.READ) }) {
             Text(stringResource(R.string.equalizer_title))

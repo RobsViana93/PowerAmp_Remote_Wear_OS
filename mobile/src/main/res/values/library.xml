@@ -1,0 +1,12 @@
+<resources>
+    <string name="library_title">Biblioteca de álbuns</string>
+    <string name="library_checking">Verificando acesso…</string>
+    <string name="library_allowed">Acesso à biblioteca disponível. Abra Biblioteca no relógio.</string>
+    <string name="library_denied">O Poweramp ainda não autorizou o acesso à biblioteca.</string>
+    <string name="library_unavailable">Poweramp não encontrado neste celular.</string>
+    <string name="library_failed">Não foi possível consultar a biblioteca. Abra o Poweramp e tente verificar novamente.</string>
+    <string name="library_open_failed">Não foi possível abrir a autorização no Poweramp.</string>
+    <string name="library_setup">Abra o Poweramp pelo menos uma vez. Toque Autorizar biblioteca e permita o acesso, se solicitado. Depois volte ao Companion e verifique o acesso.</string>
+    <string name="library_authorize">Autorizar biblioteca</string>
+    <string name="library_check">Verificar acesso</string>
+</resources>

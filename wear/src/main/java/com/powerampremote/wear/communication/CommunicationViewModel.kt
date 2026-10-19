@@ -34,6 +34,8 @@ import com.google.android.gms.wearable.Asset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import android.os.PowerManager
@@ -66,6 +68,8 @@ data class CommunicationState(
     val equalizer: EqualizerProtocol.Snapshot = EqualizerProtocol.Snapshot(),
     val equalizerStage: EqualizerProtocol.Stage? = null,
     val equalizerFailed: Boolean = false,
+    val libraryAvailable: Boolean = false,
+    val library: LibraryState = LibraryState(),
     val estimatedPositionMs: Long? = null,
     val autoUpdatesActive: Boolean = false,
     val autoUpdatesFailed: Boolean = false
@@ -102,6 +106,15 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
     private var pendingControls: PendingControls? = null
     private var equalizerJob: Job? = null
     private var pendingEqualizer: PendingEqualizer? = null
+    private var libraryJob: Job? = null
+    private var pendingLibrary: PendingLibrary? = null
+    private var libraryVisible = false
+    private var albumCursor = ""
+    private var trackCursor = ""
+    private var albumHistory = emptyList<String>()
+    private var trackHistory = emptyList<String>()
+    private data class PendingLibrary(val request: LibraryProtocol.Request, val nodeId: String,
+                                      val result: CompletableDeferred<LibraryProtocol.Result>)
     private data class PendingEqualizer(val request: EqualizerProtocol.Request, val nodeId: String,
                                         val result: CompletableDeferred<EqualizerProtocol.Result>)
     private var sessionSequence = 0L
@@ -134,30 +147,18 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         if (listenersReady) return@withLock true
         try {
             withTimeout(5_000) {
-                messages.addListener(this@CommunicationViewModel)
-                    .addOnSuccessListener { if (cleared) messages.removeListener(this@CommunicationViewModel) }
-                    .await()
-                capabilities.addListener(this@CommunicationViewModel, TestProtocol.CAPABILITY)
-                    .addOnSuccessListener {
-                        if (cleared) capabilities.removeListener(this@CommunicationViewModel, TestProtocol.CAPABILITY)
-                    }.await()
-                capabilities.addListener(this@CommunicationViewModel, PlayerProtocol.CAPABILITY)
-                    .addOnSuccessListener {
-                        if (cleared) capabilities.removeListener(this@CommunicationViewModel, PlayerProtocol.CAPABILITY)
-                    }.await()
-                capabilities.addListener(this@CommunicationViewModel, NowPlayingProtocol.CAPABILITY)
-                    .addOnSuccessListener {
-                        if (cleared) capabilities.removeListener(this@CommunicationViewModel, NowPlayingProtocol.CAPABILITY)
-                    }.await()
-                capabilities.addListener(this@CommunicationViewModel, VisualProtocol.CAPABILITY)
-                    .addOnSuccessListener { if (cleared) capabilities.removeListener(this@CommunicationViewModel, VisualProtocol.CAPABILITY) }.await()
-                capabilities.addListener(this@CommunicationViewModel, ControlsProtocol.CAPABILITY)
-                    .addOnSuccessListener { if (cleared) capabilities.removeListener(this@CommunicationViewModel, ControlsProtocol.CAPABILITY) }.await()
-                capabilities.addListener(this@CommunicationViewModel, EqualizerProtocol.CAPABILITY)
-                    .addOnSuccessListener { if (cleared) capabilities.removeListener(this@CommunicationViewModel, EqualizerProtocol.CAPABILITY) }.await()
-                dataClient.addListener(this@CommunicationViewModel)
-                    .addOnSuccessListener { if (cleared) dataClient.removeListener(this@CommunicationViewModel) }
-                    .await()
+                // Inicia registros independentes juntos; aguardar um por vez somava a latência do Play services.
+                val registrations = mutableListOf(
+                    messages.addListener(this@CommunicationViewModel)
+                        .addOnSuccessListener { if (cleared) messages.removeListener(this@CommunicationViewModel) },
+                    dataClient.addListener(this@CommunicationViewModel)
+                        .addOnSuccessListener { if (cleared) dataClient.removeListener(this@CommunicationViewModel) })
+                for (capability in listOf(TestProtocol.CAPABILITY, PlayerProtocol.CAPABILITY, NowPlayingProtocol.CAPABILITY,
+                    VisualProtocol.CAPABILITY, ControlsProtocol.CAPABILITY, EqualizerProtocol.CAPABILITY, LibraryProtocol.CAPABILITY)) {
+                    registrations += capabilities.addListener(this@CommunicationViewModel, capability)
+                        .addOnSuccessListener { if (cleared) capabilities.removeListener(this@CommunicationViewModel, capability) }
+                }
+                registrations.forEach { it.await() }
             }
             listenersReady = true
             true
@@ -186,13 +187,13 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         mutableState.update { it.copy(connection = Connection.CHECKING) }
         try {
             val discovery = withTimeout(5_000) {
-                val testNodes = capabilities.getCapability(TestProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
-                val playerNodes = capabilities.getCapability(PlayerProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
-                val metadataNodes = capabilities.getCapability(NowPlayingProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
-                val visualNodes = capabilities.getCapability(VisualProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
-                val controlsNodes = capabilities.getCapability(ControlsProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
-                val equalizerNodes = capabilities.getCapability(EqualizerProtocol.CAPABILITY, CapabilityClient.FILTER_REACHABLE).await().nodes
-                listOf(testNodes, playerNodes, metadataNodes, visualNodes, controlsNodes, equalizerNodes)
+                coroutineScope {
+                    listOf(TestProtocol.CAPABILITY, PlayerProtocol.CAPABILITY, NowPlayingProtocol.CAPABILITY,
+                        VisualProtocol.CAPABILITY, ControlsProtocol.CAPABILITY, EqualizerProtocol.CAPABILITY,
+                        LibraryProtocol.CAPABILITY).map { capability -> async {
+                        capabilities.getCapability(capability, CapabilityClient.FILTER_REACHABLE).await().nodes
+                    } }.awaitAll()
+                }
             }
             nodes = discovery[0]
             val phone = nodes.sortedWith(compareByDescending<Node> { it.isNearby }.thenBy { it.id }).firstOrNull()
@@ -204,7 +205,9 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                 estimate = null
                 mutableState.update { it.copy(controls = ControlsProtocol.Snapshot(), estimatedPositionMs = null,
                     controlsStage = null, controlsAction = null, controlsFailed = false,
-                    equalizer = EqualizerProtocol.Snapshot(), equalizerStage = null, equalizerFailed = false) }
+                    equalizer = EqualizerProtocol.Snapshot(), equalizerStage = null, equalizerFailed = false,
+                    library = LibraryState()) }
+                albumCursor = ""; trackCursor = ""; albumHistory = emptyList(); trackHistory = emptyList()
             }
             selectedPhoneId = phone?.id
             mutableState.update {
@@ -213,7 +216,8 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                     metadataAvailable = discovery[2].any { node -> node.id == phone?.id },
                     visualAvailable = discovery[3].any { node -> node.id == phone?.id },
                     controlsAvailable = discovery[4].any { node -> node.id == phone?.id },
-                    equalizerAvailable = discovery[5].any { node -> node.id == phone?.id })
+                    equalizerAvailable = discovery[5].any { node -> node.id == phone?.id },
+                    libraryAvailable = discovery[6].any { node -> node.id == phone?.id })
             }
             // Prefere o celular próximo; escolha determinística se houver mais de um.
             phone
@@ -271,6 +275,16 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
     }
 
     override fun onMessageReceived(event: MessageEvent) {
+        if (event.path == LibraryProtocol.RESULT_PATH) {
+            val result = LibraryProtocol.decodeResult(event.data) ?: return
+            val source = event.sourceNodeId
+            viewModelScope.launch {
+                val pending = pendingLibrary ?: return@launch
+                if (source == selectedPhoneId && source == pending.nodeId && pending.request == result.request)
+                    pending.result.complete(result)
+            }
+            return
+        }
         if (event.path == EqualizerProtocol.RESULT_PATH) {
             val result = EqualizerProtocol.decodeResult(event.data) ?: return
             val source = event.sourceNodeId
@@ -333,11 +347,95 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
 
     override fun onCapabilityChanged(info: CapabilityInfo) {
         if (info.name in setOf(TestProtocol.CAPABILITY, PlayerProtocol.CAPABILITY, NowPlayingProtocol.CAPABILITY,
-                VisualProtocol.CAPABILITY, ControlsProtocol.CAPABILITY, EqualizerProtocol.CAPABILITY)) refreshConnection()
+                VisualProtocol.CAPABILITY, ControlsProtocol.CAPABILITY, EqualizerProtocol.CAPABILITY,
+                LibraryProtocol.CAPABILITY)) refreshConnection()
     }
 
     /** Ao sair da tela, não deixa um teste antigo continuar em segundo plano. */
-    fun cancelTest() { testJob?.cancel(); playerJob?.cancel(); syncJob?.cancel(); seekJob?.cancel(); artJob?.cancel(); controlsJob?.cancel(); equalizerJob?.cancel(); artKey = null }
+    fun cancelTest() { testJob?.cancel(); playerJob?.cancel(); syncJob?.cancel(); seekJob?.cancel(); artJob?.cancel(); controlsJob?.cancel(); equalizerJob?.cancel(); libraryJob?.cancel(); artKey = null }
+
+    fun libraryAction(intent: LibraryIntent) {
+        if (intent == LibraryIntent.Close) { libraryVisible = false; libraryJob?.cancel(); return }
+        if (intent == LibraryIntent.Open) libraryVisible = true
+        if (intent == LibraryIntent.Albums) {
+            libraryJob?.cancel()
+            mutableState.update { it.copy(library = it.library.copy(album = null, tracks = null, stage = null,
+                failed = false, canGoPrevious = albumHistory.isNotEmpty())) }
+            return
+        }
+        if (mutableState.value.busy) return
+        if (intent == LibraryIntent.Open) {
+            albumCursor = ""; trackCursor = ""; albumHistory = emptyList(); trackHistory = emptyList()
+            mutableState.update { it.copy(library = LibraryState()) }
+        }
+        if (intent is LibraryIntent.OpenAlbum) {
+            // Accepte apenas um ID que o Companion acabou de listar.
+            if (mutableState.value.library.albums?.items?.none { it == intent.album } != false) return
+            trackCursor = ""; trackHistory = emptyList()
+            mutableState.update { it.copy(library = it.library.copy(album = intent.album, tracks = null,
+                stage = null, failed = false, canGoPrevious = false)) }
+        }
+        val album = mutableState.value.library.album
+        val tracks = album != null
+        val page = if (tracks) mutableState.value.library.tracks else mutableState.value.library.albums
+        val current = if (tracks) trackCursor else albumCursor
+        val history = if (tracks) trackHistory else albumHistory
+        val cursor = when (intent) {
+            LibraryIntent.Next -> page?.next?.takeIf { it.isNotEmpty() } ?: return
+            LibraryIntent.Previous -> history.lastOrNull() ?: return
+            LibraryIntent.Refresh -> ""
+            else -> current
+        }
+        val action = when (intent) {
+            LibraryIntent.PlayAlbum -> if (album != null) LibraryProtocol.Action.PLAY_ALBUM else return
+            is LibraryIntent.PlayTrack -> {
+                if (album == null || page?.items?.none { it.id == intent.id } != false) return
+                LibraryProtocol.Action.PLAY_TRACK
+            }
+            else -> if (tracks) LibraryProtocol.Action.TRACKS else LibraryProtocol.Action.ALBUMS
+        }
+        val request = LibraryProtocol.Request(UUID.randomUUID().toString(), action, album?.id ?: 0,
+            if (intent is LibraryIntent.PlayTrack) intent.id else 0,
+            if (LibraryProtocol.browsing(action)) cursor else "")
+        mutableState.update { it.copy(busy = true, library = it.library.copy(stage = null, failed = false)) }
+        libraryJob = viewModelScope.launch {
+            try {
+                withTimeout(35_000) {
+                    check(ensureListeners())
+                    val phone = queryPhone()
+                    check(phone != null && mutableState.value.libraryAvailable)
+                    val waiting = PendingLibrary(request, phone.id, CompletableDeferred())
+                    pendingLibrary = waiting
+                    messages.sendMessage(phone.id, LibraryProtocol.PATH, LibraryProtocol.encode(request)).await()
+                    val result = waiting.result.await()
+                    if (selectedPhoneId != phone.id || (tracks && mutableState.value.library.album?.id != album?.id)) return@withTimeout
+                    if (result.stage == LibraryProtocol.Stage.PAGE) {
+                        val updatedHistory = when (intent) {
+                            LibraryIntent.Next -> (history + current).takeLast(64)
+                            LibraryIntent.Previous -> history.dropLast(1)
+                            LibraryIntent.Refresh, LibraryIntent.Open -> emptyList()
+                            else -> history
+                        }
+                        if (tracks) { trackCursor = cursor; trackHistory = updatedHistory }
+                        else { albumCursor = cursor; albumHistory = updatedHistory }
+                        mutableState.update { it.copy(library = it.library.copy(
+                            albums = if (tracks) it.library.albums else result,
+                            tracks = if (tracks) result else null, stage = result.stage,
+                            canGoPrevious = updatedHistory.isNotEmpty())) }
+                    } else mutableState.update { it.copy(library = it.library.copy(stage = result.stage)) }
+                    if (!LibraryProtocol.browsing(action)) loadPlayerState(phone.id)
+                }
+            } catch (cancelled: CancellationException) {
+                if (cancelled is TimeoutCancellationException) mutableState.update { it.copy(library = it.library.copy(failed = true)) }
+                else throw cancelled
+            } catch (_: Exception) {
+                mutableState.update { it.copy(library = it.library.copy(failed = true)) }
+            } finally {
+                pendingLibrary = null
+                mutableState.update { it.copy(busy = false) }
+            }
+        }
+    }
 
     fun sendEqualizerAction(action: EqualizerProtocol.Action) {
         if (mutableState.value.busy) return
@@ -457,7 +555,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                         nextQuery = 0
                     }
                     val current = mutableState.value
-                    mutableState.update { it.copy(autoUpdatesActive = current.controlsAvailable &&
+                    mutableState.update { it.copy(autoUpdatesActive = !libraryVisible && current.controlsAvailable &&
                         current.connection == Connection.AVAILABLE && autoFailures < 2,
                         autoUpdatesFailed = autoFailures >= 2) }
                     val now = SystemClock.elapsedRealtime()
@@ -469,7 +567,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                         anchor.trackId == current.playerSnapshot.trackId && anchor.trackAt == current.playerSnapshot.trackReportedAt)
                         ControlsProtocol.estimatedPosition(anchor.positionMs, current.nowPlaying.durationMs, now - anchor.receivedElapsed) else null
                     mutableState.update { it.copy(estimatedPositionMs = predicted) }
-                    if (now >= nextQuery && queryJob?.isActive != true && autoFailures < 2 && current.controlsAvailable &&
+                    if (!libraryVisible && now >= nextQuery && queryJob?.isActive != true && autoFailures < 2 && current.controlsAvailable &&
                         current.connection == Connection.AVAILABLE && !current.busy) {
                         nextQuery = now + ControlsProtocol.AUTO_INTERVAL_MS
                         queryJob = launch {
@@ -693,6 +791,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         capabilities.removeListener(this, VisualProtocol.CAPABILITY)
         capabilities.removeListener(this, ControlsProtocol.CAPABILITY)
         capabilities.removeListener(this, EqualizerProtocol.CAPABILITY)
+        capabilities.removeListener(this, LibraryProtocol.CAPABILITY)
         dataClient.removeListener(this)
         super.onCleared()
     }
