@@ -1,6 +1,13 @@
 # Poweramp Remote for Wear OS
 
-Projeto pessoal em Kotlin para Galaxy S23+ e Galaxy Watch 7. O áudio continuará no celular.
+Aplicativo em Kotlin para controlar o Poweramp do celular por um relógio Wear OS. O áudio permanece no celular ou nos fones conectados a ele. Desenvolvido e testado fisicamente com Galaxy S23+ e Galaxy Watch 7.
+
+## Compatibilidade
+
+- Relógio com Wear OS 3 ou superior (Android API 30 ou superior); não depende da marca Samsung.
+- Google Play Services com a comunicação Wear Data Layer disponível.
+- Pareamento com um celular Android que tenha o Companion e o Poweramp instalados. A comunicação usa a [API padrão do Google para Wear OS](https://developer.android.com/training/wearables/data/overview).
+- Outros modelos Wear OS ainda precisam de validação física. Esta versão não atende Apple Watch, relógios Samsung antigos com Tizen ou outros sistemas de relógio.
 
 ## Etapa atual: estabilização (1.0.0)
 
