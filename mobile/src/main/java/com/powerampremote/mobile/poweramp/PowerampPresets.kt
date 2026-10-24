@@ -59,7 +59,7 @@ class PowerampPresets(private val context: Context) {
                         check(size < limit)
                         val presetId = cursor.getLong(0)
                         check(presetId > 0)
-                        val name = cursor.getString(1).orEmpty().ifBlank { "Preset #$presetId" }
+                        val name = cursor.getString(1).orEmpty().trim().ifBlank { "Preset #$presetId" }
                         add(Protocol.Item(presetId, name.take(Protocol.TEXT_LIMIT), cursor.getInt(2) != 0))
                     }
                 }

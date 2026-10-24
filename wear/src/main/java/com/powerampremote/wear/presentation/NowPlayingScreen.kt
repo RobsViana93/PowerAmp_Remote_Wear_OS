@@ -41,6 +41,7 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
                               onEqualizer: (EqualizerProtocol.Action) -> Unit,
                               onLibrary: (LibraryIntent) -> Unit,
                               onPresets: (PresetIntent) -> Unit,
+                              onPlayerVisibility: (Boolean) -> Unit,
                               details: @Composable () -> Unit) {
     var showDetails by remember { mutableStateOf(false) }
     var showControls by remember { mutableStateOf(false) }
@@ -48,6 +49,8 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
     var showLibrary by remember { mutableStateOf(false) }
     var showPresets by remember { mutableStateOf(false) }
     var seeking by remember(state.playerSnapshot.trackId, state.playerSnapshot.trackReportedAt) { mutableStateOf(false) }
+    SideEffect { onPlayerVisibility(!showDetails && !showControls && !showEqualizer && !showLibrary && !showPresets && !seeking) }
+    DisposableEffect(Unit) { onDispose { onPlayerVisibility(false) } }
     BackHandler(enabled = showDetails || showControls || showEqualizer || showLibrary || showPresets || seeking) {
         when { showPresets -> { showPresets = false; onPresets(PresetIntent.Close) }
             showDetails -> showDetails = false; showControls -> showControls = false
@@ -93,14 +96,16 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
     val connected = state.connection == Connection.AVAILABLE
     val enabled = connected && state.playerAvailable && !state.busy
     Column(Modifier.fillMaxSize().background(Color.Black).verticalScroll(rememberScrollState())
-        .padding(horizontal = 24.dp, vertical = 12.dp),
+        .padding(horizontal = 24.dp, vertical = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             Box(Modifier.size(6.dp).background(if (connected) Accent else Color(0xFFFFB4AB), CircleShape))
             Text(stringResource(if (connected) R.string.visual_connected else R.string.visual_disconnected),
                 style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, lineHeight = 12.sp,
-                color = Color.White, textAlign = TextAlign.Center)
+                color = Color.White, textAlign = TextAlign.Center, modifier = Modifier.weight(1f),
+                maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         val cover = state.artwork
         if (cover != null && matches) {
@@ -150,7 +155,7 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
             style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
         if (state.playerStage in setOf(PlayerProtocol.Stage.ERROR, PlayerProtocol.Stage.NO_UPDATE,
                 PlayerProtocol.Stage.NOT_INSTALLED, PlayerProtocol.Stage.UNSUPPORTED) ||
-            state.playerNotice in setOf(PlayerNotice.FAILED, PlayerNotice.TIMEOUT, PlayerNotice.INCOMPATIBLE)) {
+            state.playerNotice in setOf(PlayerNotice.FAILED, PlayerNotice.TIMEOUT, PlayerNotice.INCOMPATIBLE, PlayerNotice.NO_PHONE)) {
             Text(stringResource(R.string.visual_command_problem), color = Color(0xFFFFB4AB),
                 style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
         }
@@ -175,6 +180,15 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
             Text(stringResource(result), color = Accent, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
         }
         Button(onClick = onRefresh, enabled = !state.busy) { Text(stringResource(R.string.refresh_connection)) }
+        val refreshProblem = when {
+            state.syncNotice == SyncNotice.NO_PHONE -> R.string.visual_disconnected
+            state.syncNotice == SyncNotice.UPDATE_COMPANION -> R.string.metadata_update_companion
+            state.syncNotice == SyncNotice.FAILED || state.syncStage == NowPlayingProtocol.SyncStage.ERROR -> R.string.metadata_sync_failed
+            state.syncStage == NowPlayingProtocol.SyncStage.NOT_INSTALLED -> R.string.player_missing
+            else -> null
+        }
+        if (refreshProblem != null) Text(stringResource(refreshProblem), color = Color(0xFFFFB4AB),
+            style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
         Text(stringResource(when {
             state.autoUpdatesFailed -> R.string.controls_auto_failed
             state.estimatedPositionMs != null -> R.string.controls_position_estimated

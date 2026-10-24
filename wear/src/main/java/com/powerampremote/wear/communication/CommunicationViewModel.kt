@@ -76,8 +76,8 @@ data class CommunicationState(
     val autoUpdatesActive: Boolean = false,
     val autoUpdatesFailed: Boolean = false
 )
-enum class SyncNotice { IDLE, LOADING, UPDATE_COMPANION, FAILED }
-enum class PlayerNotice { IDLE, SENDING, WAITING, TIMEOUT, FAILED, CANCELLED, INCOMPATIBLE }
+enum class SyncNotice { IDLE, LOADING, UPDATE_COMPANION, NO_PHONE, FAILED }
+enum class PlayerNotice { IDLE, SENDING, WAITING, TIMEOUT, FAILED, CANCELLED, INCOMPATIBLE, NO_PHONE }
 enum class Connection { CHECKING, AVAILABLE, UNAVAILABLE, ERROR }
 enum class TestPhase { IDLE, SENDING, WAITING_ACK, CONFIRMED, NO_PHONE, FAILED, TIMEOUT, CANCELLED }
 
@@ -110,8 +110,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
     private var pendingEqualizer: PendingEqualizer? = null
     private var libraryJob: Job? = null
     private var pendingLibrary: PendingLibrary? = null
-    private var libraryVisible = false
-    private var presetsVisible = false
+    private var playerVisible = false
     private var presetJob: Job? = null
     private var pendingPreset: PendingPreset? = null
     private var presetHistory = emptyList<Long>()
@@ -321,7 +320,8 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
             val source = event.sourceNodeId
             viewModelScope.launch {
                 val pending = pendingControls ?: return@launch
-                if (pending.nodeId == source && pending.request == result.request) pending.result.complete(result)
+                if (PhoneSession.acceptsReply(selectedPhoneId, pending.nodeId, source) && pending.request == result.request)
+                    pending.result.complete(result)
             }
             return
         }
@@ -330,7 +330,8 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
             val source = event.sourceNodeId
             viewModelScope.launch {
                 val request = pendingSeek ?: return@launch
-                if (source == request.nodeId && result.id == request.id) request.result.complete(result)
+                if (PhoneSession.acceptsReply(selectedPhoneId, request.nodeId, source) && result.id == request.id)
+                    request.result.complete(result)
             }
             return
         }
@@ -339,7 +340,8 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
             val source = event.sourceNodeId
             viewModelScope.launch {
                 val request = pendingSync ?: return@launch
-                if (request.nodeId == source && request.id == result.id) request.result.complete(result)
+                if (PhoneSession.acceptsReply(selectedPhoneId, request.nodeId, source) && request.id == result.id)
+                    request.result.complete(result)
             }
             return
         }
@@ -348,7 +350,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
             val source = event.sourceNodeId
             viewModelScope.launch {
                 val request = pendingPlayer ?: return@launch
-                if (result.request != request.request || source != request.nodeId) return@launch
+                if (result.request != request.request || !PhoneSession.acceptsReply(selectedPhoneId, request.nodeId, source)) return@launch
                 acceptSnapshot(result.snapshot)
                 mutableState.update { it.copy(playerStage = result.stage) }
                 if (result.stage !in setOf(PlayerProtocol.Stage.RECEIVED, PlayerProtocol.Stage.REQUESTED)) {
@@ -362,7 +364,8 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         val source = event.sourceNodeId
         viewModelScope.launch {
             val request = pending ?: return@launch
-            if (request.id == id && request.nodeId == source) request.acknowledgement.complete(Unit)
+            if (request.id == id && PhoneSession.acceptsReply(selectedPhoneId, request.nodeId, source))
+                request.acknowledgement.complete(Unit)
         }
     }
 
@@ -375,9 +378,11 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
     /** Ao sair da tela, não deixa um teste antigo continuar em segundo plano. */
     fun cancelTest() { testJob?.cancel(); playerJob?.cancel(); syncJob?.cancel(); seekJob?.cancel(); artJob?.cancel(); controlsJob?.cancel(); equalizerJob?.cancel(); libraryJob?.cancel(); presetJob?.cancel(); artKey = null }
 
+    /** A composição informa qual tela está visível, inclusive após recriação da Activity. */
+    fun setPlayerVisible(visible: Boolean) { playerVisible = visible }
+
     fun presetAction(intent: PresetIntent) {
-        if (intent == PresetIntent.Close) { presetsVisible = false; presetJob?.cancel(); return }
-        if (intent == PresetIntent.Open) presetsVisible = true
+        if (intent == PresetIntent.Close) { presetJob?.cancel(); return }
         if (mutableState.value.busy) return
         val before = mutableState.value.presets
         if (intent is PresetIntent.Select) {
@@ -408,7 +413,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                     val phone = queryPhone()
                     check(phone != null && mutableState.value.presetsAvailable)
                     // Não reutiliza seleção ou cursor de outro celular.
-                    check((selection == null && afterId == 0L) || owner == phone.id)
+                    check(PhoneSession.canSend(owner, phone.id, selection != null || afterId != 0L))
                     val waiting = PendingPreset(request, phone.id, CompletableDeferred())
                     pendingPreset = waiting
                     messages.sendMessage(phone.id, PresetProtocol.PATH, PresetProtocol.encode(request)).await()
@@ -441,8 +446,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
     }
 
     fun libraryAction(intent: LibraryIntent) {
-        if (intent == LibraryIntent.Close) { libraryVisible = false; libraryJob?.cancel(); return }
-        if (intent == LibraryIntent.Open) libraryVisible = true
+        if (intent == LibraryIntent.Close) { libraryJob?.cancel(); return }
         if (intent == LibraryIntent.Albums) {
             libraryJob?.cancel()
             mutableState.update { it.copy(library = it.library.copy(album = null, tracks = null, stage = null,
@@ -483,6 +487,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         val request = LibraryProtocol.Request(UUID.randomUUID().toString(), action, album?.id ?: 0,
             if (intent is LibraryIntent.PlayTrack) intent.id else 0,
             if (LibraryProtocol.browsing(action)) cursor else "")
+        val owner = selectedPhoneId
         mutableState.update { it.copy(busy = true, library = it.library.copy(stage = null, failed = false)) }
         libraryJob = viewModelScope.launch {
             try {
@@ -490,6 +495,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                     check(ensureListeners())
                     val phone = queryPhone()
                     check(phone != null && mutableState.value.libraryAvailable)
+                    check(PhoneSession.canSend(owner, phone.id, album != null || cursor.isNotEmpty()))
                     val waiting = PendingLibrary(request, phone.id, CompletableDeferred())
                     pendingLibrary = waiting
                     messages.sendMessage(phone.id, LibraryProtocol.PATH, LibraryProtocol.encode(request)).await()
@@ -525,6 +531,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
 
     fun sendEqualizerAction(action: EqualizerProtocol.Action) {
         if (mutableState.value.busy) return
+        val owner = selectedPhoneId
         mutableState.update { it.copy(busy = true, equalizerStage = null, equalizerFailed = false) }
         equalizerJob = viewModelScope.launch {
             try {
@@ -532,6 +539,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                     check(ensureListeners())
                     val phone = queryPhone()
                     check(phone != null && mutableState.value.equalizerAvailable)
+                    check(PhoneSession.canSend(owner, phone.id, action != EqualizerProtocol.Action.READ))
                     val request = EqualizerProtocol.Request(UUID.randomUUID().toString(), action)
                     val waiting = PendingEqualizer(request, phone.id, CompletableDeferred())
                     pendingEqualizer = waiting
@@ -629,7 +637,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         try {
             while (isActive) {
                 val interactive = power.isInteractive
-                if (!interactive) {
+                if (!interactive || !playerVisible) {
                     queryJob?.cancel()
                     queryJob = null
                     estimate = null
@@ -641,7 +649,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                         nextQuery = 0
                     }
                     val current = mutableState.value
-                    mutableState.update { it.copy(autoUpdatesActive = !libraryVisible && !presetsVisible && current.controlsAvailable &&
+                    mutableState.update { it.copy(autoUpdatesActive = current.controlsAvailable &&
                         current.connection == Connection.AVAILABLE && autoFailures < 2,
                         autoUpdatesFailed = autoFailures >= 2) }
                     val now = SystemClock.elapsedRealtime()
@@ -653,7 +661,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                         anchor.trackId == current.playerSnapshot.trackId && anchor.trackAt == current.playerSnapshot.trackReportedAt)
                         ControlsProtocol.estimatedPosition(anchor.positionMs, current.nowPlaying.durationMs, now - anchor.receivedElapsed) else null
                     mutableState.update { it.copy(estimatedPositionMs = predicted) }
-                    if (!libraryVisible && !presetsVisible && now >= nextQuery && queryJob?.isActive != true && autoFailures < 2 && current.controlsAvailable &&
+                    if (now >= nextQuery && queryJob?.isActive != true && autoFailures < 2 && current.controlsAvailable &&
                         current.connection == Connection.AVAILABLE && !current.busy) {
                         nextQuery = now + ControlsProtocol.AUTO_INTERVAL_MS
                         queryJob = launch {
@@ -674,6 +682,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
 
     fun seekTo(seconds: Int, trackId: Long, trackAt: Long) {
         val state = mutableState.value
+        val owner = selectedPhoneId
         if (state.busy || !VisualProtocol.validTarget(VisualProtocol.Seek("", trackId, trackAt, seconds),
                 state.playerSnapshot.trackId, state.playerSnapshot.trackReportedAt, state.nowPlaying.durationMs)) return
         mutableState.update { it.copy(busy = true, seekStage = null, seekFailed = false) }
@@ -682,6 +691,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                 withTimeout(15_000) {
                     check(ensureListeners())
                     val phone = queryPhone() ?: error("no phone")
+                    check(PhoneSession.canSend(owner, phone.id, requiresOrigin = true))
                     check(capabilities.getCapability(VisualProtocol.CAPABILITY,
                         CapabilityClient.FILTER_REACHABLE).await().nodes.any { it.id == phone.id })
                     val request = VisualProtocol.Seek(UUID.randomUUID().toString(), trackId, trackAt, seconds)
@@ -711,7 +721,11 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                 withTimeout(12_000) {
                     check(ensureListeners())
                     val phone = queryPhone()
-                    if (phone == null || !mutableState.value.metadataAvailable) {
+                    if (phone == null) {
+                        mutableState.update { it.copy(syncNotice = SyncNotice.NO_PHONE) }
+                        return@withTimeout
+                    }
+                    if (!mutableState.value.metadataAvailable) {
                         mutableState.update { it.copy(syncNotice = SyncNotice.UPDATE_COMPANION) }
                         return@withTimeout
                     }
@@ -722,17 +736,25 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                         NowPlayingProtocol.encodeRefresh(pending.id)).await()
                     val result = pending.result.await()
                     mutableState.update { it.copy(syncStage = result.stage, syncNotice = SyncNotice.IDLE) }
+                    if (result.stage in setOf(NowPlayingProtocol.SyncStage.ERROR, NowPlayingProtocol.SyncStage.NOT_INSTALLED))
+                        autoFailures = 2
                     loadPlayerState(phone.id)
                 }
             } catch (cancelled: CancellationException) {
+                if (cancelled is TimeoutCancellationException) autoFailures = 2
                 mutableState.update { it.copy(syncNotice = SyncNotice.FAILED) }
                 if (cancelled !is TimeoutCancellationException) throw cancelled
             } catch (_: Exception) {
+                autoFailures = 2
                 mutableState.update { it.copy(syncNotice = SyncNotice.FAILED) }
             } finally {
                 pendingSync = null
                 mutableState.update { it.copy(busy = false) }
-                if (mutableState.value.controlsAvailable && foregroundSession != Long.MAX_VALUE &&
+                val updated = mutableState.value
+                if (updated.controlsAvailable && playerVisible && updated.connection == Connection.AVAILABLE &&
+                    updated.syncNotice == SyncNotice.IDLE && updated.syncStage in setOf(
+                        NowPlayingProtocol.SyncStage.SYNCED, NowPlayingProtocol.SyncStage.NO_POSITION) &&
+                    foregroundSession != Long.MAX_VALUE &&
                     kotlinx.coroutines.currentCoroutineContext().isActive) sendAdditionalControl(ControlsProtocol.Action.QUERY)
             }
         }
@@ -740,6 +762,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
 
     fun sendPlayerCommand(command: PlayerProtocol.Command) {
         if (mutableState.value.busy) return
+        val owner = selectedPhoneId
         mutableState.update { it.copy(busy = true, playerStage = null,
             playerNotice = PlayerNotice.SENDING, playerCommand = command) }
         playerJob = viewModelScope.launch {
@@ -747,10 +770,15 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                 withTimeout(25_000) {
                     check(ensureListeners())
                     val phone = queryPhone()
-                    if (phone == null || !mutableState.value.playerAvailable) {
+                    if (phone == null) {
+                        mutableState.update { it.copy(playerNotice = PlayerNotice.NO_PHONE) }
+                        return@withTimeout
+                    }
+                    if (!mutableState.value.playerAvailable) {
                         mutableState.update { it.copy(playerNotice = PlayerNotice.INCOMPATIBLE) }
                         return@withTimeout
                     }
+                    check(PhoneSession.canSend(owner, phone.id, requiresOrigin = true))
                     val request = PlayerProtocol.Request(UUID.randomUUID().toString(), command)
                     val waiting = PendingPlayer(request, phone.id, CompletableDeferred())
                     pendingPlayer = waiting

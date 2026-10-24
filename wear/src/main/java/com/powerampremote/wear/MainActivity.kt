@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 NowPlayingScreen(state, communication::sendPlayerCommand, communication::refreshNowPlaying,
                     communication::seekTo, communication::sendAdditionalControl, communication::sendEqualizerAction,
-                    communication::libraryAction, communication::presetAction) {
+                    communication::libraryAction, communication::presetAction, communication::setPlayerVisible) {
                     CommunicationScreen(state, communication::sendTest, communication::refreshNowPlaying,
                         communication::sendPlayerCommand)
                 }
@@ -147,6 +147,7 @@ private fun NowPlayingInformation(state: CommunicationState) {
             SyncNotice.IDLE -> R.string.metadata_sync_hint
             SyncNotice.LOADING -> R.string.metadata_sync_loading
             SyncNotice.UPDATE_COMPANION -> R.string.metadata_update_companion
+            SyncNotice.NO_PHONE -> R.string.visual_disconnected
             SyncNotice.FAILED -> R.string.metadata_sync_failed
         }
     }
@@ -186,6 +187,7 @@ private fun PlayerControls(state: CommunicationState, onCommand: (PlayerProtocol
             PlayerNotice.FAILED -> R.string.player_failed
             PlayerNotice.CANCELLED -> R.string.player_cancelled
             PlayerNotice.INCOMPATIBLE -> R.string.player_update_companion
+            PlayerNotice.NO_PHONE -> R.string.visual_disconnected
         }
     }
     Text(stringResource(resultText), color = Color(0xFF80CBC4), textAlign = TextAlign.Center,

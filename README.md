@@ -2,11 +2,17 @@
 
 Projeto pessoal em Kotlin para Galaxy S23+ e Galaxy Watch 7. O áudio continuará no celular.
 
-## Etapa atual: seleção de presets (0.9.0)
+## Etapa atual: estabilização (1.0.0)
+
+A versão 1.0.0 consolida controles, informações/capa/posição, modos e volume, álbuns/faixas, equalizador com presets e atalhos. Corrige o vínculo de pedidos/respostas ao celular selecionado e limita as consultas automáticas à tela do player realmente visível. O [guia da 1.0](docs/V1_0.md) explica as mudanças, os arquivos, os limites e o roteiro de aprovação no Galaxy S23+ e Watch 7. Os resultados executados ficam em [TESTING.md](docs/TESTING.md).
+
+Os APKs debug mantêm a assinatura anterior para atualização pessoal com install -r. A instalação física, adiada pelo usuário até esta etapa, segue [INSTALL_PHYSICAL.md](docs/INSTALL_PHYSICAL.md). Bandas/preamp e navegação por artistas/playlists/gêneros permanecem como melhorias futuras; não integram esta entrega. A aprovação física da 1.0 ainda deve ser registrada após os testes.
+
+## Histórico: seleção de presets (0.9.0)
 
 O usuário testou a 0.8 no Android Emulator e autorizou continuar na ordem combinada. A instalação das novas versões nos aparelhos físicos fica para a 1.0. A 0.9.0 retoma a parte 0.6b: lista presets públicos do Poweramp, permite escolher um e aplicar explicitamente pelo relógio. O [guia da 0.9](docs/V0_9.md) explica o funcionamento, os arquivos e como modificar a implementação. O preset ativo não é consultado; a interface distingue pedido enviado de mudança observada.
 
-Depois desta entrega, a sequência é investigar ajustes de bandas (0.6c), ampliar as categorias da biblioteca e estabilizar a 1.0. Cada complemento deve ser comprovado na API pública e validado separadamente.
+A sequência sugerida na 0.9 incluía bandas (0.6c) e outras categorias da biblioteca antes da estabilização. Em seguida, o usuário pediu avançar à 1.0; esses complementos permanecem para versões futuras, após comprovação na API pública e validação própria.
 
 ## Histórico: acesso rápido (0.8.0)
 

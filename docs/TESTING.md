@@ -1,6 +1,6 @@
 # Validação das etapas
 
-**Etapa atual: versão 0.9.** Use o [roteiro de presets](V0_9.md#fluxo-de-uso-no-emulador). A versão 0.7 foi aprovada pelo usuário no Galaxy S23+ e Watch 7; a 0.8 foi testada por ele no Android Emulator. Por sua preferência, as próximas atualizações físicas ficam para a 1.0. As seções anteriores permanecem como histórico; suas pendências não indicam que os testes tenham sido executados posteriormente.
+**Etapa atual: versão 1.0.** Use o [roteiro de aprovação física](V1_0.md#roteiro-de-aprovação-física). A versão 0.7 foi aprovada pelo usuário no Galaxy S23+ e Watch 7; a 0.8 foi testada por ele no Android Emulator. A atualização física foi adiada até esta etapa e ainda precisa ser aprovada. As seções anteriores permanecem como histórico; suas pendências não indicam que os testes tenham sido executados posteriormente.
 
 ## Estado
 
@@ -363,3 +363,38 @@ Pesquisa e integração executadas no Poweramp build-1031-bundle-play (versionCo
 Capturas e hierarquias ficam em build/reports e /sdcard dos emuladores, fora do Git. A lista mostra IDs existentes e modos, mas não identifica o ativo. O último pedido exibido no relógio não é uma leitura do estado atual do equalizador.
 
 Permanecem pendentes: seleção de preset paramétrico/AutoEq, biblioteca de presets vazia, autorização negada/revogada, remoção de preset entre listar/aplicar, ausência do Poweramp, falha/reconexão no meio do pedido, repetição/cancelamento do pedido no Android, alteração automática posterior, coleção grande com mais de 64 páginas de histórico e regressão completa dos controles/atalhos. Os testes puros de eventos sem confirmação não substituem esses cenários no Android. Validação física fica para a 1.0, conforme combinado.
+
+## Versão 1.0.0 — estabilização — 24/10/2026
+
+O usuário pediu avançar à 1.0. O conjunto atual foi consolidado sem incluir bandas/preamp nem novas categorias da biblioteca. O [guia V1_0.md](V1_0.md) separa o escopo entregue, o material de aprendizado e o roteiro de aprovação física. Não houve instalação nem aprovação da 1.0 no S23+/Watch 7 nesta sessão.
+
+Correções verificadas no código:
+
+- Vínculo dos comandos/seleções ao celular que originou a ação, antes do envio após uma descoberta suspensa. IDs coincidentes de outro celular não autorizam reutilizar seleção antiga.
+- Respostas dos protocolos anteriores também conferem o celular atualmente selecionado, além do pedido e nó esperado. Biblioteca/presets/equalizador já faziam essa conferência.
+- Consultas automáticas e estimativa de posição ficam restritas à composição visível do player, Activity RESUMED e tela interativa. Telas secundárias deixam de manter a rotina de posição ativa. Não foi feita medição quantitativa de economia de bateria.
+- Margem e largura do texto de conexão ajustadas à tela circular. Falhas da atualização manual agora aparecem no player, e ausência de celular é diferenciada de incompatibilidade do Companion.
+- Falha manual suspende as consultas automáticas da sessão até nova tentativa/reentrada. A consulta complementar de modos/volume não é encadeada após erro ou prazo esgotado.
+- Nome do preset é aparado antes do limite de tamanho, evitando nome composto apenas por espaços após corte.
+
+Validação de código executada:
+
+- Comando conjunto assembleDebug, testDebugUnitTest e lintDebug dos dois módulos: BUILD SUCCESSFUL em 3m33s.
+- Testes: 69 no mobile e 76 no wear, total 145, sem falhas/erros. Os sete testes novos de PhoneSession cobrem destino ausente, seleção que não pode mudar de celular, lista inicial em novo celular e resposta atrasada/de outro nó. São testes da regra pura, não um ensaio real com dois celulares.
+- Após acrescentar feedback da falha manual, a validação do wear passou em 42s. Após o ajuste final de suspensão das consultas depois de falha, assembleDebug, testDebugUnitTest e lintDebug do wear passaram em 34s.
+- Lint final: zero erros, 19 avisos em cada módulo, sem aumento em relação à 0.9. Nenhuma nova dependência ou permissão Android.
+- APKs versionCode 11/versionName 1.0.0, applicationId com.powerampremote nos dois módulos, builds debug para instalação pessoal. A assinatura foi mantida para permitir atualização com install -r.
+
+Integração no par de emuladores (relógio emulator-5554, celular emulator-5556), preservando dados:
+
+1. Ambos os APKs foram instalados com Success. O player mostrou Celular conectado, capa, Sub Specie Aeternitatis / AD NAUSEAM e posição informada 4:11 / 14:39. A captura wear/build/reports/v1-player.png foi inspecionada: texto de conexão legível dentro da área circular. Uma primeira leitura do uiautomator retornou null root node; a nova tentativa obteve a hierarquia atual. Não foi tratado como crash do aplicativo.
+2. O Companion do celular virtual foi temporariamente desativado com pm disable-user, sem apagar dados, e reativado em finally com pm enable e abertura da Activity. O Data Layer continuou anunciando o celular como conectado durante o ensaio; portanto, esse procedimento não comprovou perda do vínculo Bluetooth/rede. A primeira tentativa expôs a falta de feedback de atualização na tela principal, corrigida nesta versão.
+3. No APK final do wear, o ensaio foi repetido mantendo o Companion desativado durante uma atualização manual e aguardando quinze segundos após o toque. O player mostrou Não foi possível atualizar a posição. O último informe pode estar antigo. O botão Atualizar estava habilitado ao fim. A captura wear/build/reports/v1-manual-failure.png foi inspecionada; o texto pode exigir rolagem para ler a última linha na tela pequena.
+4. Após reativar o Companion e tocar Atualizar, a mensagem de falha desapareceu e voltou Consulta automática com a tela ativa. O botão Atualizar estava habilitado na leitura final. Isso comprova a recuperação desse cenário de indisponibilidade do app, sem reinstalar/apagar dados; não equivale ao teste de desconexão Bluetooth.
+5. Na primeira tentativa automatizada de Play na tela principal, a leitura dois segundos depois ainda indicou PAUSED, e o roteiro não encontrou o botão Pause. Não foi determinada a causa nem considerado esse resultado como aprovação. O comando direto 3 da API iniciou PLAYING. Pelos botões de diagnóstico do relógio, Pause foi então confirmado na sessão nativa. Na repetição completa por esses botões, Play produziu PLAYING e Pause produziu PAUSED, posição final 426036 ms (7:06), sem alteração de código entre as tentativas. Foi enviada uma pausa adicional ao encerrar o diagnóstico, para não deixar a música tocando. A tentativa inicial não foi atribuída a uma regressão específica nem a uma causa do emulador sem comprovação.
+6. Biblioteca abriu a página com Curta'n Wall - Castle Crusher! / Curta'n Wall e Live at Roadburn [24bit]. Após voltar, Equalizador > Escolher preset abriu a página iniciada por Bass / Gráfico. Nenhum preset foi aplicado nessa regressão. Voltar duas vezes retornou ao player; o Companion estava habilitado e a sessão nativa continuou PAUSED.
+7. Após o ciclo de reprodução, o player apresentou Sem capa disponível. A preferência do nosso Companion manteve art_real_id=4; o provedor público de capas para files/4 retornou um arquivo de 54.000 bytes. Tocar Atualizar recuperou a capa no relógio, junto aos mesmos título/artista e posição 7:06 / 14:39. A captura wear/build/reports/v1-cover-refreshed.png foi inspecionada. Não foi determinada a causa da ausência transitória nem acrescentada uma leitura privada como alternativa.
+
+Entrega local: build/distributions/Poweramp_Remote_1.0.0_debug.zip, com os dois APKs, documentação, LEIA-ME.txt, SHA256SUMS.txt e release-manifest.json. O arquivo foi aberto como ZIP e os hashes dos dois APKs internos foram comparados aos arquivos compilados. Os APKs finais também passaram por apksigner, com o mesmo certificado SHA-256 775cf8cb727b990691d073c8daf47e5fb387d78468f663e730ff33305e26d3cb. O pacote e as capturas estão fora do Git; as fontes e documentos são versionados.
+
+Permanecem pendentes para aprovação física: atualização dos dois aparelhos, Bluetooth com Wi-Fi desligado, perda/retorno real da conexão, fones/rota de áudio, tela apagada/Doze, uso prolongado e bateria, Tile/Complication no mostrador escolhido, além da matriz completa de estados excepcionais registrada nas etapas anteriores. A contagem de consultas efetivamente suspensas nas telas secundárias não foi medida por logs: o trecho consultado do Poweramp não mostrou os comandos POS_SYNC; a regra foi revisada no código, sem atribuir uma medição que não ocorreu. A troca entre dois celulares e respostas atrasadas reais continuam pendentes, embora a regra de vínculo tenha testes puros.
