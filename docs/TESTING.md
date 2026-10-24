@@ -1,6 +1,6 @@
 # Validação das etapas
 
-**Etapa atual: versão 0.5.** Use o [roteiro de modos, volume e atualização automática](V0_5.md#teste-nos-emuladores). O usuário confirmou os testes da versão 0.4 e autorizou a próxima etapa. A matriz física da versão 0.2 continua útil para os cenários de conexão e processo ainda não documentados como executados. As seções anteriores permanecem como histórico.
+**Etapa atual: versão 0.8.** Use o [roteiro de Tile e Complication](V0_8.md#instalar-e-testar). A versão 0.7 foi aprovada pelo usuário no Galaxy S23+ e Watch 7. Os resultados da 0.8 ficam na seção correspondente ao fim deste documento. As seções anteriores permanecem como histórico; suas pendências não indicam que os testes tenham sido executados posteriormente.
 
 ## Estado
 
@@ -309,3 +309,24 @@ As capturas/hierarquias ficam em build/reports e /sdcard dos emuladores, fora do
 O usuário concluiu a instalação e confirmou os testes no Galaxy S23+ e no Galaxy Watch 7: “Tudo funcionando perfeitamente.” A etapa 0.7 está aprovada pelo usuário para uso pessoal. A validação física foi relatada pelo usuário, sem execução ou observação direta pelo agente.
 
 Continuam sem confirmação individual: autorização negada/revogada, biblioteca vazia, remoção real de álbum/faixa durante uma consulta, desconexão/reconexão no meio do pedido, retorno após espera interrompida, bibliotecas grandes e alteração de tags entre páginas, rolagem rotary no relógio físico, fones/Bluetooth, bateria e reprodução prolongada. A aprovação geral não comprova cada um desses cenários.
+
+## Versão 0.8.0 — Tile e Complication — 24/10/2026
+
+O usuário autorizou a etapa de acesso rápido e pediu uma explicação para aprender e modificar o código futuramente. O guia [V0_8.md](V0_8.md) explica os serviços, métodos, Manifest, recursos, conceitos Kotlin/Java e exercícios de alteração. O Tile oferece Abrir player; a Complication oferece texto curto ou imagem monocromática. Ambos abrem a MainActivity sem enviar Play e sem solicitar atualização periódica.
+
+Validação executada:
+
+- A primeira compilação apontou Futures não disponível: Tiles fornece ListenableFuture, mas não a biblioteca Guava completa. O retorno foi ajustado para CallbackToFutureAdapter da biblioteca AndroidX Concurrent Futures 1.3.0.
+- O comando conjunto assembleDebug, testDebugUnitTest e lintDebug nos dois módulos terminou com BUILD SUCCESSFUL em 4m27s.
+- Foram executados os 122 testes existentes: 61 por módulo, sem falhas ou erros. Eles verificam os protocolos e regras anteriores; não exercitam a renderização nem o toque dos novos atalhos.
+- Dois avisos novos WearRecents indicaram evitar NEW_TASK e CLEAR_TOP. As flags foram retiradas do Intent da Complication. Depois, assembleDebug, testDebugUnitTest e lintDebug do wear passaram novamente em 38s.
+- Lint final: zero erros, 18 avisos no mobile e 19 no wear, sem aumento em relação à 0.7. Persistiu o aviso não fatal de versões diferentes do XML do SDK nas ferramentas locais.
+- APKs com versionCode 9 e versionName 0.8.0. apksigner verificou ambos; o certificado SHA-256 permanece 775cf8cb727b990691d073c8daf47e5fb387d78468f663e730ff33305e26d3cb. Atualização com install -r e assinatura compatível preserva os dados.
+- Nenhum dispositivo estava conectado inicialmente. Foi iniciado o AVD Wear_OS_Small_Round existente, sem apagar dados e sem salvar novo snapshot. Nesta sessão ele recebeu o serial emulator-5554, diferente da sessão da 0.7; não presumir que esse serial identifica sempre o celular.
+- O APK final do wear foi instalado com Success. O Package Manager reconheceu RemoteTileService pela ação BIND_TILE_PROVIDER e RemoteComplicationService pela ação ACTION_COMPLICATION_UPDATE_REQUEST. A abertura explícita de MainActivity retornou Status: ok, com inicialização a frio. A captura wear/build/reports/qa-player.png foi inspecionada: player renderizado, sem capa/metadados e com Sem conexão confirmada, esperado sem celular conectado nesta sessão. Não houve erro AndroidRuntime no trecho consultado; isso não comprova ausência de erros em todos os cenários.
+
+A inspeção dos editores do sistema não foi conclusiva. Foram identificados o mostrador Perfunctory, sua personalização e a área de widgets/carrossel; os editores retornavam ao mostrador entre tentativas, e gestos não avançaram consistentemente. Não foi comprovada a inclusão, a renderização ou a ação de toque do Tile/Complication pelo sistema. Essa limitação de verificação não foi atribuída a uma causa específica nem tratada como aprovação. Os serviços reconhecidos e a abertura explícita da Activity não substituem os testes dos atalhos reais.
+
+Durante a inspeção, screen_off_timeout foi alterado temporariamente de 2147483647 para 600000 e stay_on_while_plugged_in de 0 para o modo ligado. Ambos foram restaurados, e a leitura final confirmou 2147483647 e 0. A imagem do emulador informa API 37. Não houve alteração de configuração dos aparelhos físicos, instalação no S23+/Watch 7 nesta sessão ou comando de reprodução.
+
+Pendentes para aprovação da 0.8: adicionar o Tile e a Complication no Watch 7, conferir aparência em espaços de texto curto e ícone, tocar cada atalho com Poweramp pausado/parado e comprovar que não inicia música, repetir após sair do aplicativo, testar retorno após Biblioteca aberta, falta de conexão/reconexão e regressão dos controles/biblioteca. Verificar também o uso por Bluetooth com Wi-Fi desligado. A aprovação física anterior corresponde à 0.7, não a estes novos recursos.

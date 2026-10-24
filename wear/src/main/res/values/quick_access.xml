@@ -1,0 +1,9 @@
+<resources>
+    <string name="quick_access_label">Poweramp Remote</string>
+    <string name="quick_access_tile_title">Poweramp\nRemote</string>
+    <string name="quick_access_tile_subtitle">Controles e biblioteca</string>
+    <string name="quick_access_open">Abrir player</string>
+    <string name="quick_access_description">Abrir Poweramp Remote</string>
+    <string name="quick_access_complication_text">Abrir</string>
+    <string name="quick_access_complication_title">Remote</string>
+</resources>

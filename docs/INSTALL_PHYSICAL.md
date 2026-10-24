@@ -1,8 +1,8 @@
 # Instalar e usar no Galaxy S23+ e Galaxy Watch 7
 
-A versão 0.7.0 pode ser instalada diretamente para uso pessoal. Instale o Companion no S23+ e o Remote no Watch 7. O Poweramp e as músicas ficam no celular. Não é necessário publicar o projeto nem fazer login na Play Store para instalar estes APKs pelo ADB.
+A versão 0.8.0 pode ser instalada diretamente para uso pessoal. Instale o Companion no S23+ e o Remote no Watch 7. O Poweramp e as músicas ficam no celular. Não é necessário publicar o projeto nem fazer login na Play Store para instalar estes APKs pelo ADB. Após atualizar, o guia [V0_8.md](V0_8.md) mostra como adicionar o Tile e a Complication.
 
-Os aparelhos físicos não estavam conectados durante a implementação. Os testes executados neste computador estão em [TESTING.md](TESTING.md); a validação no seu conjunto físico começa com os passos abaixo.
+O usuário aprovou a 0.7 no Galaxy S23+ e Watch 7. A versão 0.8 acrescenta novos atalhos que precisam de validação nesses aparelhos. Os testes executados estão em [TESTING.md](TESTING.md).
 
 ## Preparar os APKs
 
@@ -27,6 +27,8 @@ Ative as opções do desenvolvedor no celular, tocando sete vezes no Número da 
 
 Copie o serial do celular, sem escolher emulator-5554 ou emulator-5556:
 
+Read-Host mostra uma pergunta e aguarda a resposta na linha seguinte. Primeiro execute a atribuição abaixo; depois digite somente o serial quando solicitado e pressione Enter. Uma alternativa é atribuir diretamente, por exemplo: $phoneSerial = 'SERIAL_DO_SEU_CELULAR', substituindo o texto pelo serial real. As variáveis valem somente no terminal atual; em um terminal novo, defina $adbPath novamente.
+
 ```powershell
 $phoneSerial = Read-Host 'Cole o serial do S23+ mostrado pelo adb devices -l'
 & $adbPath -s $phoneSerial install -r .\mobile\build\outputs\apk\debug\mobile-debug.apk
@@ -40,12 +42,14 @@ Deixe o relógio e o computador na mesma rede Wi-Fi. No relógio, abra Configura
 
 Em Depuração sem fio, escolha Parear novo dispositivo. No terminal, informe o IP:porta mostrado nessa tela:
 
+A tela do relógio mostra dois dados diferentes: endereço IP:porta (por exemplo, 192.168.18.230:36311) e código de pareamento de seis dígitos. O endereço usa dois-pontos antes da porta; não use 192.168.18.230.36311. O exemplo não é fixo: copie os valores atuais do seu relógio. Mantenha a tela de pareamento aberta durante o procedimento.
+
 ```powershell
 $watchPairAddress = Read-Host 'IP:porta da tela Parear novo dispositivo do Watch 7'
 & $adbPath pair $watchPairAddress
 ```
 
-Digite o código exibido no relógio quando o terminal pedir. Volte à tela principal de Depuração sem fio e copie o IP:porta de conexão. A porta de conexão costuma ser diferente da porta de pareamento, conforme o [guia oficial do Wear OS](https://developer.android.com/training/wearables/get-started/debug-wifi).
+Na pergunta de Read-Host, informe somente o IP:porta, nunca o código de seis dígitos. Depois execute adb pair. Somente quando aparecer Enter pairing code, digite o código exibido no relógio. Volte à tela principal de Depuração sem fio e copie o IP:porta de conexão. A porta de conexão costuma ser diferente da porta de pareamento, conforme o [guia oficial do Wear OS](https://developer.android.com/training/wearables/get-started/debug-wifi).
 
 ```powershell
 $watchSerial = Read-Host 'IP:porta de conexão da tela principal de Depuração sem fio'
@@ -72,7 +76,9 @@ Depois da instalação, o aplicativo continua instalado e funciona sem o computa
 - **unauthorized no ADB:** desbloqueie o aparelho e aceite a autorização de depuração.
 - **Falha em adb connect:** confira se usou a porta de conexão, se ela mudou ao reativar a depuração e se a rede permite comunicação entre computador e relógio.
 - **INSTALL_FAILED_UPDATE_INCOMPATIBLE:** o Remote anterior foi assinado por outra chave. Prefira recompilar com a mesma chave. Caso decida reinstalar, remova somente o Poweramp Remote/Companion correspondente e autorize a biblioteca novamente; isso apaga os dados locais do Remote. Preserve o Poweramp e sua biblioteca.
-- **Companion precisa ser atualizado:** confira se instalou mobile e wear da mesma versão, ambos 0.7.0.
+- **Companion precisa ser atualizado:** confira se instalou mobile e wear da mesma versão, ambos 0.8.0.
+- **protocol fault ao parear:** confira o conteúdo de $watchPairAddress. Deve ser um IP:porta, não o código de seis dígitos. Abra Parear novo dispositivo novamente e use o endereço e código atuais da mesma tela.
+- **cannot resolve host:** confira o separador antes da porta. Use IP:porta com dois-pontos e sem espaços.
 - **Sem acesso à biblioteca:** abra o Companion no S23+, use Autorizar biblioteca e Verificar acesso; depois Atualizar lista no relógio. Não se trata de permissão para copiar músicas ao relógio.
 - **Lista antiga depois de mudar músicas/tags:** atualize a biblioteca no Poweramp e use Atualizar lista no Remote.
 - **Sem conexão no Remote:** confira o pareamento no Galaxy Wearable, mantenha os dois aparelhos próximos, abra o Companion e use Atualizar no relógio. A lista não funciona offline nesta versão.

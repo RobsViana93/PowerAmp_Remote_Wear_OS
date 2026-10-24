@@ -11,8 +11,8 @@ android {
         applicationId = "com.powerampremote"
         minSdk = 30
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.7.0"
+        versionCode = 9
+        versionName = "0.8.0"
     }
     buildFeatures { compose = true }
     compileOptions {
@@ -36,4 +36,9 @@ dependencies {
     implementation(libs.activity.compose)
     implementation(libs.compose.foundation)
     implementation(libs.wear.material3)
+    implementation(libs.wear.tiles)
+    implementation(libs.wear.protolayout)
+    implementation(libs.wear.protolayout.material)
+    implementation(libs.wear.complications)
+    implementation(libs.concurrent.futures)
 }

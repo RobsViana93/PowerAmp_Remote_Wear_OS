@@ -2,7 +2,11 @@
 
 Projeto pessoal em Kotlin para Galaxy S23+ e Galaxy Watch 7. O áudio continuará no celular.
 
-## Etapa atual: biblioteca de álbuns (0.7.0)
+## Etapa atual: acesso rápido (0.8.0)
+
+A 0.7 foi aprovada pelo usuário no Galaxy S23+ e no Watch 7. A versão 0.8.0 acrescenta um Tile com Abrir player e uma Complication de ícone/texto curto para mostradores compatíveis. Ambos abrem o aplicativo sem iniciar música automaticamente e sem exigir reprodução ativa. O [guia da etapa 0.8](docs/V0_8.md) explica os arquivos, os conceitos Kotlin/Java, como modificar os atalhos e como adicioná-los ao relógio. Os resultados executados e as pendências ficam em [TESTING.md](docs/TESTING.md).
+
+## Histórico: biblioteca de álbuns (0.7.0)
 
 O usuário confirmou os testes principais da 0.6a e priorizou a [etapa 0.7](docs/V0_7.md). A versão 0.7.0 acrescenta Biblioteca no relógio: álbuns com artista, faixas, páginas e reprodução de álbum ou faixa pelo Poweramp do celular. O Companion tem Autorizar biblioteca e Verificar acesso. O áudio permanece no celular.
 
@@ -67,6 +71,8 @@ Gradle 9.3.1 executou com sucesso. Após configurar o SDK, a validação revelou
 | Compose BOM | 2026.09.00 |
 | Activity Compose | 1.13.0 |
 | Wear Compose Material 3 | 1.7.1 |
+| Wear Tiles / ProtoLayout | 1.6.2 / 1.4.2 |
+| Complications Data Source / Concurrent Futures | 1.3.0 / 1.3.0 |
 | Android mínimo mobile / wear | API 26 / 30 |
 | Play services Wearable | 20.0.1 |
 | Lifecycle | 2.11.0 |
