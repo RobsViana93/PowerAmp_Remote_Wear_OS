@@ -304,4 +304,8 @@ Durante a investigação, houve pausas em sessões anteriores, e os horários do
 
 As capturas/hierarquias ficam em build/reports e /sdcard dos emuladores, fora do Git. A tentativa de executar content por run-as foi negada pelo Android por falta de ACCESS_CONTENT_PROVIDERS_EXTERNALLY; consultas dentro do Companion funcionaram. Consultas de diagnóstico posteriores usaram a ferramenta content como shell e somente os URIs públicos, sem abrir o banco privado nem alterar a biblioteca.
 
-Permanecem pendentes: instalação e validação física no S23+/Watch 7, autorização negada/revogada, biblioteca vazia, remoção real de álbum/faixa durante uma consulta, desconexão/reconexão no meio do pedido, retorno após espera interrompida, bibliotecas grandes e alteração de tags entre páginas, rolagem rotary no relógio físico, fones/Bluetooth, bateria e reprodução prolongada. A versão pode ser instalada diretamente para esses testes, seguindo o guia; não foi executada instalação nos aparelhos físicos nesta sessão.
+### Aprovação nos aparelhos físicos — 19/10/2026
+
+O usuário concluiu a instalação e confirmou os testes no Galaxy S23+ e no Galaxy Watch 7: “Tudo funcionando perfeitamente.” A etapa 0.7 está aprovada pelo usuário para uso pessoal. A validação física foi relatada pelo usuário, sem execução ou observação direta pelo agente.
+
+Continuam sem confirmação individual: autorização negada/revogada, biblioteca vazia, remoção real de álbum/faixa durante uma consulta, desconexão/reconexão no meio do pedido, retorno após espera interrompida, bibliotecas grandes e alteração de tags entre páginas, rolagem rotary no relógio físico, fones/Bluetooth, bateria e reprodução prolongada. A aprovação geral não comprova cada um desses cenários.
