@@ -40,17 +40,24 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
                               onAdditionalControl: (ControlsProtocol.Action) -> Unit,
                               onEqualizer: (EqualizerProtocol.Action) -> Unit,
                               onLibrary: (LibraryIntent) -> Unit,
+                              onPresets: (PresetIntent) -> Unit,
                               details: @Composable () -> Unit) {
     var showDetails by remember { mutableStateOf(false) }
     var showControls by remember { mutableStateOf(false) }
     var showEqualizer by remember { mutableStateOf(false) }
     var showLibrary by remember { mutableStateOf(false) }
+    var showPresets by remember { mutableStateOf(false) }
     var seeking by remember(state.playerSnapshot.trackId, state.playerSnapshot.trackReportedAt) { mutableStateOf(false) }
-    BackHandler(enabled = showDetails || showControls || showEqualizer || showLibrary || seeking) {
-        when { showDetails -> showDetails = false; showControls -> showControls = false
+    BackHandler(enabled = showDetails || showControls || showEqualizer || showLibrary || showPresets || seeking) {
+        when { showPresets -> { showPresets = false; onPresets(PresetIntent.Close) }
+            showDetails -> showDetails = false; showControls -> showControls = false
             showLibrary -> if (state.library.album != null) onLibrary(LibraryIntent.Albums)
                 else { showLibrary = false; onLibrary(LibraryIntent.Close) }
             showEqualizer -> showEqualizer = false; else -> seeking = false }
+    }
+    if (showPresets) {
+        PresetScreen(state, onPresets) { showPresets = false; onPresets(PresetIntent.Close) }
+        return
     }
     if (showLibrary) {
         LibraryScreen(state, onLibrary,
@@ -60,7 +67,9 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
         return
     }
     if (showEqualizer) {
-        EqualizerScreen(state, onEqualizer) { showEqualizer = false }
+        EqualizerScreen(state, onEqualizer, onPresets = { showPresets = true; onPresets(PresetIntent.Open) }) {
+            showEqualizer = false
+        }
         return
     }
     if (showControls) {

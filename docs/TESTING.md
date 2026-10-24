@@ -1,6 +1,6 @@
 # Validação das etapas
 
-**Etapa atual: versão 0.8.** Use o [roteiro de Tile e Complication](V0_8.md#instalar-e-testar). A versão 0.7 foi aprovada pelo usuário no Galaxy S23+ e Watch 7. Os resultados da 0.8 ficam na seção correspondente ao fim deste documento. As seções anteriores permanecem como histórico; suas pendências não indicam que os testes tenham sido executados posteriormente.
+**Etapa atual: versão 0.9.** Use o [roteiro de presets](V0_9.md#fluxo-de-uso-no-emulador). A versão 0.7 foi aprovada pelo usuário no Galaxy S23+ e Watch 7; a 0.8 foi testada por ele no Android Emulator. Por sua preferência, as próximas atualizações físicas ficam para a 1.0. As seções anteriores permanecem como histórico; suas pendências não indicam que os testes tenham sido executados posteriormente.
 
 ## Estado
 
@@ -330,3 +330,36 @@ A inspeção dos editores do sistema não foi conclusiva. Foram identificados o 
 Durante a inspeção, screen_off_timeout foi alterado temporariamente de 2147483647 para 600000 e stay_on_while_plugged_in de 0 para o modo ligado. Ambos foram restaurados, e a leitura final confirmou 2147483647 e 0. A imagem do emulador informa API 37. Não houve alteração de configuração dos aparelhos físicos, instalação no S23+/Watch 7 nesta sessão ou comando de reprodução.
 
 Pendentes para aprovação da 0.8: adicionar o Tile e a Complication no Watch 7, conferir aparência em espaços de texto curto e ícone, tocar cada atalho com Poweramp pausado/parado e comprovar que não inicia música, repetir após sair do aplicativo, testar retorno após Biblioteca aberta, falta de conexão/reconexão e regressão dos controles/biblioteca. Verificar também o uso por Bluetooth com Wi-Fi desligado. A aprovação física anterior corresponde à 0.7, não a estes novos recursos.
+
+### Retorno do usuário sobre a 0.8
+
+O usuário relatou ter testado a versão 0.8 no Android Emulator e autorizou prosseguir na ordem proposta. Não detalhou cada cenário. Por preferência dele, a atualização dos aparelhos físicos fica para a 1.0. A aprovação relatada no emulador não substitui os cenários físicos acima.
+
+## Versão 0.9.0 — presets, retomada da 0.6b — 24/10/2026
+
+O escopo desta entrega é listar presets e selecionar explicitamente um pelo relógio. A numeração avança para 0.9.0 após a 0.8; não retorna a 0.6. Bandas e outras categorias da biblioteca permanecem para entregas seguintes. O guia [V0_9.md](V0_9.md) contém o roteiro de emulador e o material de aprendizado. A atualização física continua adiada até a 1.0 por preferência do usuário.
+
+Validação de código:
+
+- Comando conjunto assembleDebug, testDebugUnitTest e lintDebug dos dois módulos: BUILD SUCCESSFUL em 4m29s.
+- Relatórios JUnit: 69 testes por módulo, total 138, sem falhas ou erros. Oito testes novos em cada módulo cobrem IDs, separação entre cursor e seleção, nomes Unicode/homônimos, páginas ordenadas, limites, dados truncados/adicionais, estágios inválidos e eventos antigos/futuros/com outro ID.
+- Após os ajustes do histórico de paginação, a validação final assembleDebug, testDebugUnitTest e lintDebug do wear passou em 59s. O histórico retém as 64 referências anteriores mais recentes sem impedir continuar avançando.
+- Lint final: zero erros, 19 avisos em cada módulo. O aviso novo do mobile é a sugestão de usar String.toUri em vez de Uri.parse. Permaneceu o aviso não fatal de XML do SDK nas ferramentas locais.
+- Protocolos mobile/wear conferidos quanto à paridade. Nenhuma dependência ou permissão Android acrescentada.
+- APKs versionCode=10/versionName=0.9.0. apksigner validou ambos com o mesmo certificado SHA-256 anterior: 775cf8cb727b990691d073c8daf47e5fb387d78468f663e730ff33305e26d3cb.
+
+Pesquisa e integração executadas no Poweramp build-1031-bundle-play (versionCode 1031004):
+
+1. Foi usado emulator-5554 como relógio e emulator-5556 como celular, conforme a identificação real do ADB nesta sessão. O celular virtual iniciou offline e não respondeu à tentativa de encerramento por console; somente o processo iniciado nesta tarefa foi encerrado e reiniciado sem carregar/salvar snapshot, sem apagar dados. Depois do boot, o Poweramp e as músicas existentes estavam presentes. A causa do estado offline não foi determinada.
+2. A consulta de leitura ao provedor público eq_presets com projeção eq_presets._id, eq_presets.name e parametric retornou IDs e nomes reais. IDs 1 a 10 incluíram Bass, Classical, Flat e Rock; a continuação depois de 10 retornou Live (11) até presets paramétricos como Bass & Treble (20) e Punchy Bass (21). Não foram lidos bancos privados nem blobs de presets.
+3. Antes da seleção, a interface do Poweramp mostrava o preset gráfico padrão sem nome (botão Preset), NO DVC EQ 10 TON LMT, Bass/Treble em 0% e reprodução pausada. O comando público 50 com ID long 8 fez o botão mostrar Rock, permanecendo pausado.
+4. Ambos os APKs 0.9 foram instalados nos emuladores com Success. No relógio, o player mostrou Celular conectado, capa, Sub Specie Aeternitatis / AD NAUSEAM e posição 4:07 / 14:39. Equalizador > Escolher preset carregou a lista do provedor por mensagens v9, começando por Bass / Gráfico.
+5. Tocar Bass exibiu Escolhido: Bass e a ação separada Aplicar escolhido. A captura da tela do celular antes de aplicar mostrava o botão Preset, não Bass; selecionar localmente não foi tratado como comando de aplicação. Não se atribuiu a ausência de Rock naquele instante a uma causa específica.
+6. Aplicar escolhido pelo relógio resultou em Mudança do preset observada no Poweramp. A interface do celular mostrou Bass como preset e continuou com Play, indicando reprodução pausada. A confirmação nesta tentativa exigiu ID correspondente e evento novo; não é garantia de entrega do evento em qualquer condição de segundo plano. A captura wear/build/reports/preset-result.png foi inspecionada: mensagem e escolha legíveis na tela circular.
+7. O APK final do wear foi reinstalado. Próxima página levou à página iniciada por Live; Página anterior voltou à página iniciada por Bass. A captura wear/build/reports/preset-final-page.png foi inspecionada, com título, orientação, aviso sobre o ativo e primeiro item legíveis.
+8. Ao terminar, foi selecionada novamente a opção Graphic / Default Preset no seletor do Poweramp. Sua linha estava inicialmente sob o cabeçalho fixo da lista; foi preciso rolar para expô-la antes do toque. A leitura posterior confirmou botão Preset, NO DVC EQ 10 TON LMT, Bass/Treble 0% e Play. Não foi usada a opção Restore Defaults do menu nem apagado preset algum.
+9. A captura mobile/build/reports/preset-restored-final.png foi inspecionada: preset padrão, preamp 0.0, bandas visíveis de 31 a 4K em 0.0, curva horizontal e reprodução pausada. Voltar duas vezes no relógio retornou de Presets ao Equalizador e ao player, com Celular conectado, capa e os mesmos metadados/posição. Essa inspeção não substitui a regressão completa de cada controle.
+
+Capturas e hierarquias ficam em build/reports e /sdcard dos emuladores, fora do Git. A lista mostra IDs existentes e modos, mas não identifica o ativo. O último pedido exibido no relógio não é uma leitura do estado atual do equalizador.
+
+Permanecem pendentes: seleção de preset paramétrico/AutoEq, biblioteca de presets vazia, autorização negada/revogada, remoção de preset entre listar/aplicar, ausência do Poweramp, falha/reconexão no meio do pedido, repetição/cancelamento do pedido no Android, alteração automática posterior, coleção grande com mais de 64 páginas de histórico e regressão completa dos controles/atalhos. Os testes puros de eventos sem confirmação não substituem esses cenários no Android. Validação física fica para a 1.0, conforme combinado.

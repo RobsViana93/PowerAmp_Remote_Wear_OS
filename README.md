@@ -2,7 +2,13 @@
 
 Projeto pessoal em Kotlin para Galaxy S23+ e Galaxy Watch 7. O áudio continuará no celular.
 
-## Etapa atual: acesso rápido (0.8.0)
+## Etapa atual: seleção de presets (0.9.0)
+
+O usuário testou a 0.8 no Android Emulator e autorizou continuar na ordem combinada. A instalação das novas versões nos aparelhos físicos fica para a 1.0. A 0.9.0 retoma a parte 0.6b: lista presets públicos do Poweramp, permite escolher um e aplicar explicitamente pelo relógio. O [guia da 0.9](docs/V0_9.md) explica o funcionamento, os arquivos e como modificar a implementação. O preset ativo não é consultado; a interface distingue pedido enviado de mudança observada.
+
+Depois desta entrega, a sequência é investigar ajustes de bandas (0.6c), ampliar as categorias da biblioteca e estabilizar a 1.0. Cada complemento deve ser comprovado na API pública e validado separadamente.
+
+## Histórico: acesso rápido (0.8.0)
 
 A 0.7 foi aprovada pelo usuário no Galaxy S23+ e no Watch 7. A versão 0.8.0 acrescenta um Tile com Abrir player e uma Complication de ícone/texto curto para mostradores compatíveis. Ambos abrem o aplicativo sem iniciar música automaticamente e sem exigir reprodução ativa. O [guia da etapa 0.8](docs/V0_8.md) explica os arquivos, os conceitos Kotlin/Java, como modificar os atalhos e como adicioná-los ao relógio. Os resultados executados e as pendências ficam em [TESTING.md](docs/TESTING.md).
 

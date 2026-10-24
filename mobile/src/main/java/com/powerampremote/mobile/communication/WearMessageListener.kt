@@ -19,7 +19,23 @@ class WearMessageListener : WearableListenerService() {
     private val completedControls = LinkedHashMap<String, ControlsProtocol.Result>()
     private val completedEqualizer = LinkedHashMap<String, EqualizerProtocol.Result>()
     private val completedLibrary = LinkedHashMap<String, LibraryProtocol.Result>()
+    private val completedPresets = LinkedHashMap<String, PresetProtocol.Result>()
     override fun onMessageReceived(event: MessageEvent) {
+        if (event.path == PresetProtocol.PATH) {
+            val request = PresetProtocol.decode(event.data) ?: return
+            val key = "${event.sourceNodeId}:${request.id}"
+            val previous = completedPresets[key]
+            if (previous != null && previous.request != request) return
+            val result = previous ?: com.powerampremote.mobile.poweramp.PowerampPresets(this).execute(request)
+            completedPresets[key] = result
+            if (completedPresets.size > 32) completedPresets.remove(completedPresets.keys.first())
+            try {
+                Tasks.await(Wearable.getMessageClient(this).sendMessage(event.sourceNodeId,
+                    PresetProtocol.RESULT_PATH, PresetProtocol.encodeResult(result)), 2, TimeUnit.SECONDS)
+            } catch (_: InterruptedException) { Thread.currentThread().interrupt() }
+            catch (_: Exception) { /* O relógio limita a espera. */ }
+            return
+        }
         if (event.path == LibraryProtocol.PATH) {
             val request = LibraryProtocol.decode(event.data) ?: return
             val key = "${event.sourceNodeId}:${request.id}"

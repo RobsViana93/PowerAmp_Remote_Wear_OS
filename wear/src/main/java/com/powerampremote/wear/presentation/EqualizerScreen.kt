@@ -23,6 +23,7 @@ import java.util.Date
 
 @Composable
 internal fun EqualizerScreen(state: CommunicationState, onAction: (EqualizerProtocol.Action) -> Unit,
+                             onPresets: () -> Unit,
                              onBack: () -> Unit) {
     val enabled = state.connection == Connection.AVAILABLE && state.equalizerAvailable && !state.busy
     Column(Modifier.fillMaxSize().background(Color.Black).verticalScroll(rememberScrollState())
@@ -64,6 +65,7 @@ internal fun EqualizerScreen(state: CommunicationState, onAction: (EqualizerProt
         Button(onClick = { onAction(EqualizerProtocol.Action.READ) }, enabled = enabled) {
             Text(stringResource(R.string.equalizer_read))
         }
+        Button(onClick = onPresets, enabled = !state.busy) { Text(stringResource(R.string.presets_open)) }
         Button(onClick = onBack) { Text(stringResource(R.string.visual_back)) }
     }
 }

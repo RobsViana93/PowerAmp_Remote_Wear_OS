@@ -1,0 +1,23 @@
+<resources>
+    <string name="presets_title">Presets</string>
+    <string name="presets_open">Escolher preset</string>
+    <string name="presets_apply">Aplicar escolhido</string>
+    <string name="presets_selected">Escolhido: %1$s</string>
+    <string name="presets_last_request">Último pedido: %1$s</string>
+    <string name="presets_scope">Aplicar carrega os ajustes do preset no Poweramp. Navegar não altera o som.</string>
+    <string name="presets_active_unknown">O preset ativo não é consultado nesta tela.</string>
+    <string name="presets_requested">Preset solicitado. Sem confirmação; confira no Poweramp.</string>
+    <string name="presets_observed">Mudança do preset observada no Poweramp.</string>
+    <string name="presets_denied">Autorize a biblioteca no Companion do celular e atualize a lista.</string>
+    <string name="presets_missing">Preset não encontrado. Atualize a lista.</string>
+    <string name="presets_unavailable">Poweramp não encontrado no celular.</string>
+    <string name="presets_failed">Não foi possível concluir. Confira a conexão e tente novamente.</string>
+    <string name="presets_update">Atualize o Companion para 0.9 ou posterior.</string>
+    <string name="presets_empty">Nenhum preset disponível.</string>
+    <string name="presets_hint">Escolha um preset antes de aplicar.</string>
+    <string name="presets_graphic">Gráfico</string>
+    <string name="presets_parametric">Paramétrico</string>
+    <string name="presets_refresh">Atualizar lista</string>
+    <string name="presets_next">Próxima página</string>
+    <string name="presets_previous">Página anterior</string>
+</resources>
