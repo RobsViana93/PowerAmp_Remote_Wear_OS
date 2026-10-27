@@ -128,6 +128,17 @@ class PowerampLibrary(private val context: Context) {
             if (trackId > 0) "folder_files._id=?" else null,
             if (trackId > 0) arrayOf(trackId.toString()) else null, limit = 1) { it.moveToFirst() }
 
+    /** A primeira faixa real do álbum fornece a capa pela API pública. */
+    fun albumArt(albumId: Long): ByteArray? {
+        if (albumId <= 0) return null
+        return try {
+            val realId = query("albums/$albumId/files", arrayOf("folder_files._id"),
+                sort = "COALESCE(track_number,10000), folder_files._id", limit = 1) {
+                if (it.moveToFirst()) it.getLong(0) else 0L
+            }
+            if (realId > 0) AlbumArtPublisher.loadAlbum(this.context, realId) else null
+        } catch (_: Exception) { null }
+    }
     private fun play(request: Protocol.Request): Protocol.Result {
         if (!albumExists(request.albumId) || !containsTrack(request.albumId, request.trackId))
             return Protocol.Result(request, Protocol.Stage.NOT_FOUND)

@@ -70,6 +70,7 @@ data class CommunicationState(
     val equalizerFailed: Boolean = false,
     val libraryAvailable: Boolean = false,
     val library: LibraryState = LibraryState(),
+    val albumArt: Map<Long, Bitmap> = emptyMap(),
     val presetsAvailable: Boolean = false,
     val presets: PresetState = PresetState(),
     val estimatedPositionMs: Long? = null,
@@ -110,6 +111,15 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
     private var pendingEqualizer: PendingEqualizer? = null
     private var libraryJob: Job? = null
     private var pendingLibrary: PendingLibrary? = null
+    private data class PendingAlbumArt(val request: LibraryArtProtocol.Request, val nodeId: String,
+                                       val result: CompletableDeferred<LibraryArtProtocol.Result>)
+    private var pendingAlbumArt: PendingAlbumArt? = null
+    private var albumArtJob: Job? = null
+    private var visibleAlbumIds: List<Long> = emptyList()
+    private val albumArtCache = LinkedHashMap<Long, Bitmap>()
+    private val missingAlbumArt = LinkedHashMap<Long, Long>()
+    private var albumArtNode: String? = null
+
     private var playerVisible = false
     private var presetJob: Job? = null
     private var pendingPreset: PendingPreset? = null
@@ -211,6 +221,11 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                 artJob?.cancel()
                 artKey = null
                 estimate = null
+                albumArtJob?.cancel()
+                pendingAlbumArt = null
+                albumArtCache.clear(); missingAlbumArt.clear(); visibleAlbumIds = emptyList()
+                albumArtNode = phone?.id
+                mutableState.update { it.copy(albumArt = emptyMap()) }
                 mutableState.update { it.copy(controls = ControlsProtocol.Snapshot(), estimatedPositionMs = null,
                     controlsStage = null, controlsAction = null, controlsFailed = false,
                     equalizer = EqualizerProtocol.Snapshot(), equalizerStage = null, equalizerFailed = false,
@@ -295,6 +310,16 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
             }
             return
         }
+        if (event.path == LibraryArtProtocol.RESULT_PATH) {
+            val result = LibraryArtProtocol.decodeResult(event.data) ?: return
+            val source = event.sourceNodeId
+            viewModelScope.launch {
+                val waiting = pendingAlbumArt ?: return@launch
+                if (source == selectedPhoneId && source == waiting.nodeId && waiting.request == result.request)
+                    waiting.result.complete(result)
+            }
+            return
+        }
         if (event.path == LibraryProtocol.RESULT_PATH) {
             val result = LibraryProtocol.decodeResult(event.data) ?: return
             val source = event.sourceNodeId
@@ -376,7 +401,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
     }
 
     /** Ao sair da tela, não deixa um teste antigo continuar em segundo plano. */
-    fun cancelTest() { testJob?.cancel(); playerJob?.cancel(); syncJob?.cancel(); seekJob?.cancel(); artJob?.cancel(); controlsJob?.cancel(); equalizerJob?.cancel(); libraryJob?.cancel(); presetJob?.cancel(); artKey = null }
+    fun cancelTest() { testJob?.cancel(); playerJob?.cancel(); syncJob?.cancel(); seekJob?.cancel(); artJob?.cancel(); controlsJob?.cancel(); equalizerJob?.cancel(); libraryJob?.cancel(); albumArtJob?.cancel(); presetJob?.cancel(); artKey = null }
 
     /** A composição informa qual tela está visível, inclusive após recriação da Activity. */
     fun setPlayerVisible(visible: Boolean) { playerVisible = visible }
@@ -445,8 +470,64 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
+    private fun rememberMissingAlbumArt(albumId: Long) {
+        missingAlbumArt[albumId] = SystemClock.elapsedRealtime()
+        while (missingAlbumArt.size > 48) missingAlbumArt.remove(missingAlbumArt.keys.first())
+    }
+
+    /** Recebe somente os IDs de cartões visíveis; uma miniatura trafega por vez. */
+    fun visibleAlbumArt(ids: List<Long>) {
+        visibleAlbumIds = ids.filter { it > 0 }.distinct()
+        if (visibleAlbumIds.isEmpty() || albumArtJob?.isActive == true) return
+        albumArtJob = viewModelScope.launch {
+            while (true) {
+                val now = SystemClock.elapsedRealtime()
+                val albumId = visibleAlbumIds.firstOrNull { id ->
+                    !albumArtCache.containsKey(id) &&
+                        (missingAlbumArt[id]?.let { now - it >= 10 * 60_000 } != false)
+                } ?: break
+                val nodeId = selectedPhoneId ?: break
+                if (albumArtNode != nodeId || mutableState.value.library.album != null) break
+                val missingAt = missingAlbumArt[albumId]
+                if (missingAt != null && SystemClock.elapsedRealtime() - missingAt < 10 * 60_000) continue
+                if (albumId !in visibleAlbumIds) continue
+                val request = LibraryArtProtocol.Request(UUID.randomUUID().toString(), albumId)
+                val waiting = PendingAlbumArt(request, nodeId, CompletableDeferred())
+                pendingAlbumArt = waiting
+                try {
+                    val result = withTimeout(4_000) {
+                        messages.sendMessage(nodeId, LibraryArtProtocol.REQUEST_PATH,
+                            LibraryArtProtocol.encode(request)).await()
+                        waiting.result.await()
+                    }
+                    if (nodeId != selectedPhoneId || albumId !in visibleAlbumIds) continue
+                    val bitmap = if (result.status == LibraryArtProtocol.Status.AVAILABLE)
+                        withContext(Dispatchers.Default) {
+                            val bytes = result.jpeg
+                            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                            if (bounds.outWidth !in 1..160 || bounds.outHeight !in 1..160) null
+                            else BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        } else null
+                    if (bitmap != null) {
+                        albumArtCache[albumId] = bitmap
+                        while (albumArtCache.size > 24) albumArtCache.remove(albumArtCache.keys.first())
+                        mutableState.update { it.copy(albumArt = albumArtCache.toMap()) }
+                    } else rememberMissingAlbumArt(albumId)
+                } catch (cancelled: CancellationException) {
+                    if (cancelled !is TimeoutCancellationException) throw cancelled
+                    rememberMissingAlbumArt(albumId)
+                } catch (_: Exception) {
+                    rememberMissingAlbumArt(albumId)
+                } finally {
+                    if (pendingAlbumArt === waiting) pendingAlbumArt = null
+                }
+            }
+        }
+    }
+
     fun libraryAction(intent: LibraryIntent) {
-        if (intent == LibraryIntent.Close) { libraryJob?.cancel(); return }
+        if (intent == LibraryIntent.Close) { libraryJob?.cancel(); albumArtJob?.cancel(); visibleAlbumIds = emptyList(); return }
         if (intent == LibraryIntent.Albums) {
             libraryJob?.cancel()
             mutableState.update { it.copy(library = it.library.copy(album = null, tracks = null, stage = null,
@@ -454,6 +535,10 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
             return
         }
         if (mutableState.value.busy) return
+        if (intent == LibraryIntent.Open || intent == LibraryIntent.Refresh) {
+            albumArtJob?.cancel(); pendingAlbumArt = null; albumArtCache.clear(); missingAlbumArt.clear()
+            mutableState.update { it.copy(albumArt = emptyMap()) }
+        }
         if (intent == LibraryIntent.Open) {
             albumCursor = ""; trackCursor = ""; albumHistory = emptyList(); trackHistory = emptyList()
             mutableState.update { it.copy(library = LibraryState()) }
@@ -461,6 +546,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         if (intent is LibraryIntent.OpenAlbum) {
             // Accepte apenas um ID que o Companion acabou de listar.
             if (mutableState.value.library.albums?.items?.none { it == intent.album } != false) return
+            albumArtJob?.cancel(); pendingAlbumArt = null; visibleAlbumIds = emptyList()
             trackCursor = ""; trackHistory = emptyList()
             mutableState.update { it.copy(library = it.library.copy(album = intent.album, tracks = null,
                 stage = null, failed = false, canGoPrevious = false)) }

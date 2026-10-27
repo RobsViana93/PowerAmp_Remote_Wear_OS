@@ -36,6 +36,19 @@ class WearMessageListener : WearableListenerService() {
             catch (_: Exception) { /* O relógio limita a espera. */ }
             return
         }
+        if (event.path == LibraryArtProtocol.REQUEST_PATH) {
+            val request = LibraryArtProtocol.decode(event.data) ?: return
+            val jpeg = com.powerampremote.mobile.poweramp.PowerampLibrary(this).albumArt(request.albumId)
+            val result = LibraryArtProtocol.Result(request,
+                if (jpeg == null) LibraryArtProtocol.Status.MISSING else LibraryArtProtocol.Status.AVAILABLE,
+                jpeg ?: byteArrayOf())
+            try {
+                Tasks.await(Wearable.getMessageClient(this).sendMessage(event.sourceNodeId,
+                    LibraryArtProtocol.RESULT_PATH, LibraryArtProtocol.encodeResult(result)), 2, TimeUnit.SECONDS)
+            } catch (_: InterruptedException) { Thread.currentThread().interrupt() }
+            catch (_: Exception) { /* O relógio limita a espera. */ }
+            return
+        }
         if (event.path == LibraryProtocol.PATH) {
             val request = LibraryProtocol.decode(event.data) ?: return
             val key = "${event.sourceNodeId}:${request.id}"

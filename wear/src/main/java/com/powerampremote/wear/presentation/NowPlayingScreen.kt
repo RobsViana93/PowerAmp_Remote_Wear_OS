@@ -42,6 +42,7 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
                               onLibrary: (LibraryIntent) -> Unit,
                               onPresets: (PresetIntent) -> Unit,
                               onPlayerVisibility: (Boolean) -> Unit,
+                              onVisibleAlbumArt: (List<Long>) -> Unit,
                               details: @Composable () -> Unit) {
     var showDetails by remember { mutableStateOf(false) }
     var showControls by remember { mutableStateOf(false) }
@@ -63,7 +64,7 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
         return
     }
     if (showLibrary) {
-        LibraryScreen(state, onLibrary,
+        LibraryScreen(state, onLibrary, onVisibleAlbumArt,
             onClose = { if (state.library.album != null) onLibrary(LibraryIntent.Albums)
                 else { showLibrary = false; onLibrary(LibraryIntent.Close) } },
             onPlayer = { showLibrary = false; onLibrary(LibraryIntent.Close) })

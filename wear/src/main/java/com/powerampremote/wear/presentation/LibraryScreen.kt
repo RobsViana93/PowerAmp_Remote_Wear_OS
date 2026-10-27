@@ -1,6 +1,8 @@
 package com.powerampremote.wear.presentation
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
@@ -12,12 +14,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
@@ -27,6 +44,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun LibraryScreen(state: CommunicationState, onAction: (LibraryIntent) -> Unit,
+                           onVisibleAlbumArt: (List<Long>) -> Unit,
                            onClose: () -> Unit, onPlayer: () -> Unit) {
     val library = state.library
     val album = library.album
@@ -38,6 +56,11 @@ internal fun LibraryScreen(state: CommunicationState, onAction: (LibraryIntent) 
     val failed = library.failed || library.stage in setOf(LibraryProtocol.Stage.DENIED,
         LibraryProtocol.Stage.UNAVAILABLE, LibraryProtocol.Stage.NOT_FOUND, LibraryProtocol.Stage.EXPIRED, LibraryProtocol.Stage.ERROR)
     LaunchedEffect(album?.id, page?.request?.id, failed) { list.scrollToItem(0); focus.requestFocus() }
+    LaunchedEffect(album?.id, page?.request?.id) {
+        if (album != null) onVisibleAlbumArt(emptyList())
+        else snapshotFlow { list.layoutInfo.visibleItemsInfo.mapNotNull { it.key as? Long } }
+            .distinctUntilChanged().collectLatest { onVisibleAlbumArt(it) }
+    }
     LazyColumn(Modifier.fillMaxSize().background(Color.Black)
         .onRotaryScrollEvent { event -> scope.launch { list.scrollBy(event.verticalScrollPixels) }; true }
         .focusRequester(focus).focusable(), state = list,
@@ -74,14 +97,18 @@ internal fun LibraryScreen(state: CommunicationState, onAction: (LibraryIntent) 
         item { Text(stringResource(notice), color = Color.White, style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center) }
         if (!failed && page != null) items(page.items, key = { it.id }) { entry ->
-            Button(onClick = { onAction(if (album == null) LibraryIntent.OpenAlbum(entry) else LibraryIntent.PlayTrack(entry.id)) },
-                enabled = available, modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(entry.title.ifBlank { stringResource(if (album == null) R.string.library_unknown_album else R.string.library_unknown_track) },
-                        maxLines = 3, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-                    Text(entry.subtitle.ifBlank { album?.subtitle.orEmpty().ifBlank { stringResource(R.string.library_unknown_artist) } },
-                        style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center)
+            if (album == null) {
+                AlbumTile(entry, state.albumArt[entry.id], available) { onAction(LibraryIntent.OpenAlbum(entry)) }
+            } else {
+                Button(onClick = { onAction(LibraryIntent.PlayTrack(entry.id)) },
+                    enabled = available, modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(entry.title.ifBlank { stringResource(R.string.library_unknown_track) },
+                            maxLines = 3, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                        Text(entry.subtitle.ifBlank { album.subtitle.ifBlank { stringResource(R.string.library_unknown_artist) } },
+                            style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center)
+                    }
                 }
             }
         }
@@ -102,6 +129,37 @@ internal fun LibraryScreen(state: CommunicationState, onAction: (LibraryIntent) 
         item {
             Button(onClick = onPlayer) { Text(stringResource(R.string.library_player)) }
             Button(onClick = onClose) { Text(stringResource(R.string.visual_back)) }
+        }
+    }
+}
+
+/** Alvo único para toque e TalkBack; a capa pode chegar depois do texto. */
+@Composable
+private fun AlbumTile(entry: LibraryProtocol.Item, artwork: android.graphics.Bitmap?,
+                      enabled: Boolean, onClick: () -> Unit) {
+    val title = entry.title.ifBlank { stringResource(R.string.library_unknown_album) }
+    val artist = entry.subtitle.ifBlank { stringResource(R.string.library_unknown_artist) }
+    val targetSize = if (LocalDensity.current.fontScale > 1.2f) 160.dp else 128.dp
+    BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        val size = minOf(targetSize, maxWidth)
+        Box(Modifier.size(size).clip(RoundedCornerShape(4.dp))
+            .background(Color(0xFF263238))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .clearAndSetSemantics {
+                contentDescription = "$title, $artist"
+                role = Role.Button
+                if (enabled) onClick { onClick(); true } else disabled()
+            }) {
+            if (artwork != null) Image(artwork.asImageBitmap(), contentDescription = null,
+                contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(
+                Color.Transparent, Color(0xAA000000), Color(0xEE000000)))))
+            Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(8.dp)) {
+                Text(title, color = Color.White, style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                Text(artist, color = Color.White, style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
         }
     }
 }

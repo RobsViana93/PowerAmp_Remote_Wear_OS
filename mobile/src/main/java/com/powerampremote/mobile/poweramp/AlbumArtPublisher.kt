@@ -51,6 +51,26 @@ object AlbumArtPublisher {
         if (source == null) null else resize(source)
     } catch (_: Exception) { null }
 
+    /** Limita a miniatura para a mensagem do relógio, sem alterar a capa do player. */
+    internal fun loadAlbum(context: Context, realId: Long): ByteArray? {
+        val source = load(context, realId) ?: return null
+        val bitmap = BitmapFactory.decodeByteArray(source, 0, source.size) ?: return null
+        return try {
+            val scale = minOf(1f, 160f / maxOf(bitmap.width, bitmap.height))
+            val scaled = Bitmap.createScaledBitmap(bitmap, maxOf(1, (bitmap.width * scale).toInt()),
+                maxOf(1, (bitmap.height * scale).toInt()), true)
+            try {
+                for (quality in listOf(78, 65, 50, 35)) {
+                    val bytes = ByteArrayOutputStream().use { output ->
+                        scaled.compress(Bitmap.CompressFormat.JPEG, quality, output); output.toByteArray()
+                    }
+                    if (bytes.size <= com.powerampremote.mobile.communication.LibraryArtProtocol.MAX_IMAGE_BYTES)
+                        return bytes
+                }
+                null
+            } finally { if (scaled !== bitmap) scaled.recycle() }
+        } finally { bitmap.recycle() }
+    }
     private fun resize(bytes: ByteArray): ByteArray? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)

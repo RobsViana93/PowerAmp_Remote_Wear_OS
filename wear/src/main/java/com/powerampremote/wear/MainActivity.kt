@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 NowPlayingScreen(state, communication::sendPlayerCommand, communication::refreshNowPlaying,
                     communication::seekTo, communication::sendAdditionalControl, communication::sendEqualizerAction,
-                    communication::libraryAction, communication::presetAction, communication::setPlayerVisible) {
+                    communication::libraryAction, communication::presetAction, communication::setPlayerVisible, communication::visibleAlbumArt) {
                     CommunicationScreen(state, communication::sendTest, communication::refreshNowPlaying,
                         communication::sendPlayerCommand)
                 }
