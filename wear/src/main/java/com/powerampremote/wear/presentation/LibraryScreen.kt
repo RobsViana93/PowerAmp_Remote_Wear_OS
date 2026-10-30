@@ -36,11 +36,17 @@ import androidx.compose.ui.draw.clip
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.wear.compose.material3.Button
+import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import com.powerampremote.wear.R
 import com.powerampremote.wear.communication.*
 import kotlinx.coroutines.launch
+
+private val LibraryBackground = Color(0xFF080B10)
+private val LibrarySurface = Color(0xFF1D2938)
+private val LibraryAccent = Color(0xFF72B7FF)
+private val LibrarySecondary = Color(0xFFD1DAE7)
 
 @Composable
 internal fun LibraryScreen(state: CommunicationState, onAction: (LibraryIntent) -> Unit,
@@ -61,7 +67,7 @@ internal fun LibraryScreen(state: CommunicationState, onAction: (LibraryIntent) 
         else snapshotFlow { list.layoutInfo.visibleItemsInfo.mapNotNull { it.key as? Long } }
             .distinctUntilChanged().collectLatest { onVisibleAlbumArt(it) }
     }
-    LazyColumn(Modifier.fillMaxSize().background(Color.Black)
+    LazyColumn(Modifier.fillMaxSize().background(LibraryBackground)
         .onRotaryScrollEvent { event -> scope.launch { list.scrollBy(event.verticalScrollPixels) }; true }
         .focusRequester(focus).focusable(), state = list,
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
@@ -71,7 +77,7 @@ internal fun LibraryScreen(state: CommunicationState, onAction: (LibraryIntent) 
                 color = Color.White, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center)
         }
         if (album != null) item {
-            Text(album.title.ifBlank { stringResource(R.string.library_unknown_album) }, color = Color(0xFF80CBC4),
+            Text(album.title.ifBlank { stringResource(R.string.library_unknown_album) }, color = LibraryAccent,
                 style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, maxLines = 3,
                 overflow = TextOverflow.Ellipsis)
             Button(onClick = { onAction(LibraryIntent.PlayAlbum) }, enabled = available && !failed && page?.items?.isNotEmpty() == true) {
@@ -101,11 +107,13 @@ internal fun LibraryScreen(state: CommunicationState, onAction: (LibraryIntent) 
                 AlbumTile(entry, state.albumArt[entry.id], available) { onAction(LibraryIntent.OpenAlbum(entry)) }
             } else {
                 Button(onClick = { onAction(LibraryIntent.PlayTrack(entry.id)) },
-                    enabled = available, modifier = Modifier.fillMaxWidth()) {
+                    enabled = available, modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = LibrarySurface, contentColor = Color.White)) {
                     Column(Modifier.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(entry.title.ifBlank { stringResource(R.string.library_unknown_track) },
                             maxLines = 3, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                         Text(entry.subtitle.ifBlank { album.subtitle.ifBlank { stringResource(R.string.library_unknown_artist) } },
+                            color = if (available) LibrarySecondary else Color(0xFF7D8794),
                             style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
                             textAlign = TextAlign.Center)
                     }
@@ -142,8 +150,8 @@ private fun AlbumTile(entry: LibraryProtocol.Item, artwork: android.graphics.Bit
     val targetSize = if (LocalDensity.current.fontScale > 1.2f) 160.dp else 128.dp
     BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         val size = minOf(targetSize, maxWidth)
-        Box(Modifier.size(size).clip(RoundedCornerShape(4.dp))
-            .background(Color(0xFF263238))
+        Box(Modifier.size(size).clip(RoundedCornerShape(12.dp))
+            .background(LibrarySurface)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .clearAndSetSemantics {
                 contentDescription = "$title, $artist"
@@ -152,12 +160,15 @@ private fun AlbumTile(entry: LibraryProtocol.Item, artwork: android.graphics.Bit
             }) {
             if (artwork != null) Image(artwork.asImageBitmap(), contentDescription = null,
                 contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            else Text("♪", modifier = Modifier.align(Alignment.Center), color = LibraryAccent,
+                style = MaterialTheme.typography.displayMedium)
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(
-                Color.Transparent, Color(0xAA000000), Color(0xEE000000)))))
-            Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(8.dp)) {
+                Color.Transparent, Color(0xAA080B10), Color(0xF2080B10)))))
+            Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(title, color = Color.White, style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                Text(artist, color = Color.White, style = MaterialTheme.typography.bodySmall,
+                Text(artist, color = LibrarySecondary, style = MaterialTheme.typography.bodySmall,
                     maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }

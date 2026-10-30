@@ -2,12 +2,12 @@ package com.powerampremote.mobile
 
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -44,11 +44,15 @@ internal fun LibraryAccessPanel() {
         stage == LibraryProtocol.Stage.UNAVAILABLE -> R.string.library_unavailable
         else -> R.string.library_failed
     }
-    Text(stringResource(status), color = Color(0xFF80CBC4), textAlign = TextAlign.Center)
-    Text(stringResource(R.string.library_setup), color = Color.White, textAlign = TextAlign.Center)
+    Text(stringResource(status), color = when {
+        launchFailed || stage == LibraryProtocol.Stage.ERROR -> MaterialTheme.colorScheme.error
+        stage == LibraryProtocol.Stage.DENIED || stage == LibraryProtocol.Stage.UNAVAILABLE -> Color(0xFFFFD28C)
+        else -> AppAccent
+    }, style = MaterialTheme.typography.bodyMedium)
+    Text(stringResource(R.string.library_setup), color = AppSecondary, style = MaterialTheme.typography.bodyMedium)
     Button(onClick = {
         try { context.startActivity(PowerampLibrary.permissionIntent(context)); launchFailed = false }
         catch (_: RuntimeException) { launchFailed = true }
     }) { Text(stringResource(R.string.library_authorize)) }
-    Button(onClick = { refresh++ }, enabled = stage != null) { Text(stringResource(R.string.library_check)) }
+    OutlinedButton(onClick = { refresh++ }, enabled = stage != null) { Text(stringResource(R.string.library_check)) }
 }

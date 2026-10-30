@@ -26,12 +26,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material3.Button
+import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.MaterialTheme
 import com.powerampremote.wear.R
 import com.powerampremote.wear.communication.*
 
-private val Accent = Color(0xFF80CBC4)
+private val Accent = Color(0xFF72B7FF)
+private val Surface = Color(0xFF1D2938)
+private val SecondaryText = Color(0xFFB3BDCD)
 
 /** A tela principal reúne os controles; os detalhes técnicos ficam em outra página. */
 @Composable
@@ -96,41 +99,45 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
     val duration = if (matches) metadata.durationMs else -1
     val connected = state.connection == Connection.AVAILABLE
     val enabled = connected && state.playerAvailable && !state.busy
-    Column(Modifier.fillMaxSize().background(Color.Black).verticalScroll(rememberScrollState())
-        .padding(horizontal = 24.dp, vertical = 28.dp),
+    Column(Modifier.fillMaxSize().background(Color(0xFF080B10)).verticalScroll(rememberScrollState())
+        .padding(horizontal = 24.dp, vertical = 25.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            Box(Modifier.size(6.dp).background(if (connected) Accent else Color(0xFFFFB4AB), CircleShape))
+            Box(Modifier.size(6.dp).background(if (connected) Color(0xFF7DD9B4) else Color(0xFFFFB4AB), CircleShape))
             Text(stringResource(if (connected) R.string.visual_connected else R.string.visual_disconnected),
                 style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, lineHeight = 12.sp,
                 color = Color.White, textAlign = TextAlign.Center, modifier = Modifier.weight(1f),
                 maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
-        val cover = state.artwork
-        if (cover != null && matches) {
-            Image(cover.asImageBitmap(), stringResource(R.string.visual_cover),
-                modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop)
-        } else {
-            Box(Modifier.size(36.dp).background(Color(0xFF182623), RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center) {
-                Text("♪", color = Accent, style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.semantics { contentDescription = "Sem capa disponível" })
+        Row(Modifier.fillMaxWidth().padding(vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val cover = state.artwork
+            if (cover != null && matches) {
+                Image(cover.asImageBitmap(), stringResource(R.string.visual_cover),
+                    modifier = Modifier.size(48.dp).clip(RoundedCornerShape(10.dp)), contentScale = ContentScale.Crop)
+            } else {
+                Box(Modifier.size(48.dp).background(Surface, RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center) {
+                    Text("♪", color = Accent, style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.semantics { contentDescription = "Sem capa disponível" })
+                }
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(if (matches) metadata.title.ifBlank { stringResource(R.string.metadata_title_unknown) }
+                    else stringResource(R.string.metadata_title_unknown), color = Color.White,
+                    style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(if (matches) metadata.artist.ifBlank { stringResource(R.string.metadata_artist_unknown) }
+                    else stringResource(R.string.metadata_artist_unknown), color = SecondaryText,
+                    style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        Text(if (matches) metadata.title.ifBlank { stringResource(R.string.metadata_title_unknown) }
-            else stringResource(R.string.metadata_title_unknown), color = Color.White,
-            style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center)
-        Text(if (matches) metadata.artist.ifBlank { stringResource(R.string.metadata_artist_unknown) }
-            else stringResource(R.string.metadata_artist_unknown), color = Accent,
-            style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         val progressDescription = stringResource(if (state.estimatedPositionMs != null) R.string.controls_estimated_description
             else R.string.metadata_position, NowPlayingProtocol.formatTime(position),
             NowPlayingProtocol.formatTime(duration))
         Canvas(Modifier.fillMaxWidth().height(6.dp).semantics { contentDescription = progressDescription }) {
-            drawLine(Color(0xFF384542), start = androidx.compose.ui.geometry.Offset(0f, size.height / 2),
+            drawLine(Color(0xFF334154), start = androidx.compose.ui.geometry.Offset(0f, size.height / 2),
                 end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2), strokeWidth = size.height, cap = StrokeCap.Round)
             val fraction = VisualProtocol.fraction(position, duration)
             if (fraction > 0f) drawLine(Accent, start = androidx.compose.ui.geometry.Offset(0f, size.height / 2),
@@ -140,7 +147,7 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
         Text(stringResource(if (state.estimatedPositionMs != null) R.string.controls_estimated_time else R.string.controls_reported_time,
             NowPlayingProtocol.formatTime(position), NowPlayingProtocol.formatTime(duration)),
             color = Color.White, style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, lineHeight = 12.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             TransportButton(PlayerProtocol.Command.PREVIOUS, enabled, onCommand)
             TransportButton(if (player.state == PlayerProtocol.State.PLAYING) PlayerProtocol.Command.PAUSE
                 else PlayerProtocol.Command.PLAY, enabled, onCommand)
@@ -222,12 +229,15 @@ private fun TransportButton(command: PlayerProtocol.Command, enabled: Boolean,
         PlayerProtocol.Command.NEXT -> R.string.player_next
         PlayerProtocol.Command.PREVIOUS -> R.string.player_previous
     })
+    val primary = command == PlayerProtocol.Command.PLAY || command == PlayerProtocol.Command.PAUSE
     Button(onClick = { onCommand(command) }, enabled = enabled,
-        modifier = Modifier.size(48.dp).semantics { contentDescription = label }) {
-        Canvas(Modifier.size(20.dp)) {
+        colors = ButtonDefaults.buttonColors(containerColor = if (primary) Accent else Surface,
+            contentColor = if (primary) Color(0xFF061A30) else Color.White),
+        modifier = Modifier.size(if (primary) 44.dp else 40.dp).semantics { contentDescription = label }) {
+        Canvas(Modifier.size(18.dp)) {
             val w = size.width
             val h = size.height
-            val ink = Color(0xFF172B28)
+            val ink = if (!enabled) Color(0xFF7D8794) else if (primary) Color(0xFF061A30) else Color.White
             if (command == PlayerProtocol.Command.PAUSE) {
                 drawRect(ink, androidx.compose.ui.geometry.Offset(w * .2f, h * .1f),
                     androidx.compose.ui.geometry.Size(w * .2f, h * .8f))

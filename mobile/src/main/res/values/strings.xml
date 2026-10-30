@@ -3,6 +3,10 @@
     <string name="screen_title">Poweramp Remote
 Companion</string>
     <string name="screen_description">Aplicativo do celular</string>
+    <string name="home_intro">Conecte o Poweramp ao seu relógio e acompanhe o último estado informado.</string>
+    <string name="home_player_title">Poweramp</string>
+    <string name="home_diagnostics_title">Comunicação e diagnóstico</string>
+    <string name="home_watch_test">Último teste do relógio</string>
     <string name="stage_label">Comunicação básica — v0.1</string>
     <string name="receipt_waiting">Aguardando teste do relógio</string>
     <string name="receipt_received">Mensagem recebida do relógio</string>

@@ -2,6 +2,8 @@
     <string name="controls_title">Mais controles</string>
     <string name="controls_update_companion">Atualize o Companion para 0.5 e confira a conexão.</string>
     <string name="controls_unknown">não informado</string>
+    <string name="controls_shuffle_title">Aleatório</string>
+    <string name="controls_repeat_title">Repetição</string>
     <string name="controls_shuffle_state">Aleatório informado: %1$s</string>
     <string name="controls_repeat_state">Repetição informada: %1$s</string>
     <string name="controls_shuffle_off">Desativar aleatório</string>
