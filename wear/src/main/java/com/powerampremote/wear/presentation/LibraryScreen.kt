@@ -45,7 +45,6 @@ private val LibraryBackground = Color(0xFF080B10)
 private val LibrarySurface = Color(0xFF1D2938)
 private val LibraryAccent = Color(0xFF72B7FF)
 private val LibrarySecondary = Color(0xFFD1DAE7)
-private val LibraryNavigation = Color(0xFF111923)
 private val LibraryDisabled = Color(0xFF7D8794)
 
 @Composable
@@ -138,21 +137,8 @@ internal fun LibraryScreen(state: CommunicationState, onAction: (LibraryIntent) 
 /** Altura flexível para fonte ampliada, com alvo de toque de pelo menos 48 dp. */
 @Composable
 private fun LibraryAction(label: String, symbol: String, enabled: Boolean = true,
-                          prominent: Boolean = false, onClick: () -> Unit) {
-    val foreground = if (!enabled) LibraryDisabled else if (prominent) LibraryAccent else LibrarySecondary
-    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp))
-        .background(if (prominent) LibrarySurface else LibraryNavigation)
-        .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-        .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(symbol, modifier = Modifier.width(20.dp).clearAndSetSemantics { },
-            color = foreground, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
-        Text(label, color = foreground, style = MaterialTheme.typography.bodySmall,
-            fontWeight = if (prominent) FontWeight.SemiBold else FontWeight.Normal,
-            modifier = Modifier.weight(1f))
-    }
-}
+                          prominent: Boolean = false, onClick: () -> Unit) =
+    CompactActionButton(label, symbol, enabled = enabled, prominent = prominent, onClick = onClick)
 
 @Composable
 private fun TrackRow(entry: LibraryProtocol.Item, albumArtist: String, artwork: android.graphics.Bitmap?,

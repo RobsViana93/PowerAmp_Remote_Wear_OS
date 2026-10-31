@@ -1,6 +1,10 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24">
-    <!-- Símbolo próprio de controle de reprodução; branco para o mostrador aplicar sua cor. -->
-    <path android:fillColor="#FFFFFFFF" android:pathData="M6,4 L6,20 L17,12 Z M18,4 L21,4 L21,20 L18,20 Z" />
+    android:viewportWidth="58" android:viewportHeight="58">
+    <!-- Versão monocromática, ampliada para permanecer legível no mostrador. -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M10.5,28 A3.5,3.5 0,0 1,14,31.5 L14,48.5 A3.5,3.5 0,0 1,7,48.5 L7,31.5 A3.5,3.5 0,0 1,10.5,28 Z M23.5,15 A3.5,3.5 0,0 1,27,18.5 L27,48.5 A3.5,3.5 0,0 1,20,48.5 L20,18.5 A3.5,3.5 0,0 1,23.5,15 Z M36.5,35 A3.5,3.5 0,0 1,40,38.5 L40,48.5 A3.5,3.5 0,0 1,33,48.5 L33,38.5 A3.5,3.5 0,0 1,36.5,35 Z" />
+    <path android:fillColor="@android:color/transparent" android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4" android:strokeLineCap="round"
+        android:pathData="M31,13 A12,12 0,0 1,43,25 M31,3 A22,22 0,0 1,53,25" />
 </vector>

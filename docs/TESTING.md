@@ -2,6 +2,51 @@
 
 **Etapa atual: versão 1.0.** Use o [roteiro de aprovação física](V1_0.md#roteiro-de-aprovação-física). A versão 0.7 foi aprovada pelo usuário no Galaxy S23+ e Watch 7; a 0.8 foi testada por ele no Android Emulator. A atualização física foi adiada até esta etapa e ainda precisa ser aprovada. As seções anteriores permanecem como histórico; suas pendências não indicam que os testes tenham sido executados posteriormente.
 
+## Identidade visual do aplicativo — 31/10/2026
+
+Ícone próprio com três barras de áudio e dois arcos de conexão, azul-claro sobre
+fundo azul-escuro. Os dois aplicativos agora declaram um ícone adaptativo no
+Manifest, com versão monocromática para ícones temáticos em Android 13 ou superior.
+O símbolo do Tile, a prévia do Tile e a imagem da Complication também foram atualizados.
+A prévia do desenho está em `docs/previews/app-icon.png`.
+
+Validação executada: `:mobile:assembleDebug`, `:wear:assembleDebug`,
+`:mobile:lintDebug` e `:wear:lintDebug` concluídos com sucesso. Os recursos de
+ícone dos dois módulos foram comparados e são idênticos.
+
+Esta alteração do ícone inclui os APKs mobile e wear, ambos ainda na 1.0.0.
+Para ver a nova identidade nos dois dispositivos, atualize ambos. A atualização
+do Companion é visual; os comandos e protocolos permanecem os mesmos.
+
+Em 31/10/2026, o usuário confirmou a instalação dos APKs atualizados nos dois
+aparelhos. Esse relato confirma a instalação; não especifica a execução de
+todos os cenários de verificação visual abaixo.
+
+Pendente nos dispositivos: conferir ícone na lista de aplicativos do relógio,
+launcher do celular, ícones temáticos quando disponíveis, seletor de Tiles e
+Complication em mostrador compatível. A máscara do ícone depende do launcher.
+
+## Botões compactos em todas as telas do relógio — 31/10/2026
+
+Os botões de texto usam o componente `CompactActionButton`, extraído do padrão
+da Biblioteca: fundo discreto, cantos de 14 dp, texto alinhado à esquerda e altura
+mínima de 48 dp, que cresce com a fonte e o conteúdo. Aplicado ao player, editor
+de posição, Mais controles, Equalizador, Presets e detalhes de comunicação.
+Seleções têm destaque azul e marca de seleção, também informada ao TalkBack;
+as condições de habilitação e os comandos foram preservados. Volume e ajustes
+de dez segundos dividem a largura disponível em duas áreas iguais.
+
+Os controles circulares de reprodução do player e as linhas de faixas com capas
+mantêm seu desenho. A alteração afeta somente o APK Wear OS, ainda na 1.0.0.
+
+Validação executada: `:wear:assembleDebug`, `:wear:lintDebug` e
+`:wear:testDebugUnitTest` concluídos com sucesso. Os 79 testes passaram.
+APK atualizado: `wear/build/outputs/apk/debug/wear-debug.apk`.
+
+Verificação visual pendente no relógio: fonte normal e ampliada, rótulos longos,
+botões desabilitados/desconectados, seleção de modos/presets, ajustes de posição
+e volume, navegação e leitura pelo TalkBack.
+
 ## Ajuste visual da biblioteca — 30/10/2026
 
 As faixas agora usam linhas com capa de 44 dp à esquerda e título à direita em até

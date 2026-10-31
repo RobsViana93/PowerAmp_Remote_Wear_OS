@@ -10,12 +10,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.material3.Button
-import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import com.powerampremote.wear.R
@@ -51,18 +47,10 @@ internal fun EqualizerScreen(state: CommunicationState, onAction: (EqualizerProt
             style = MaterialTheme.typography.bodySmall)
         val isOn = state.equalizer.state == EqualizerProtocol.State.ON
         val isOff = state.equalizer.state == EqualizerProtocol.State.OFF
-        Button(onClick = { onAction(EqualizerProtocol.Action.ENABLE) }, enabled = enabled,
-            modifier = Modifier.semantics { if (isOn) selected = true },
-            colors = ButtonDefaults.buttonColors(containerColor = if (isOn) Accent else Surface,
-                contentColor = if (isOn) Color(0xFF061A30) else Color.White)) {
-            Text(stringResource(R.string.equalizer_enable))
-        }
-        Button(onClick = { onAction(EqualizerProtocol.Action.DISABLE) }, enabled = enabled,
-            modifier = Modifier.semantics { if (isOff) selected = true },
-            colors = ButtonDefaults.buttonColors(containerColor = if (isOff) Accent else Surface,
-                contentColor = if (isOff) Color(0xFF061A30) else Color.White)) {
-            Text(stringResource(R.string.equalizer_disable))
-        }
+        CompactActionButton(stringResource(R.string.equalizer_enable), "≋", enabled = enabled,
+            selected = isOn, onClick = { onAction(EqualizerProtocol.Action.ENABLE) })
+        CompactActionButton(stringResource(R.string.equalizer_disable), "≋", enabled = enabled,
+            selected = isOff, onClick = { onAction(EqualizerProtocol.Action.DISABLE) })
         val notice = when {
             state.busy -> R.string.visual_busy
             state.connection != Connection.AVAILABLE -> R.string.visual_disconnected
@@ -81,14 +69,9 @@ internal fun EqualizerScreen(state: CommunicationState, onAction: (EqualizerProt
             color = Secondary, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
         Text(stringResource(R.string.equalizer_scope), color = Secondary,
             style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
-        Button(onClick = { onAction(EqualizerProtocol.Action.READ) }, enabled = enabled,
-            colors = ButtonDefaults.buttonColors(containerColor = Surface, contentColor = Color.White)) {
-            Text(stringResource(R.string.equalizer_read))
-        }
-        Button(onClick = onPresets, enabled = !state.busy,
-            colors = ButtonDefaults.buttonColors(containerColor = Surface, contentColor = Color.White)) {
-            Text(stringResource(R.string.presets_open))
-        }
-        Button(onClick = onBack) { Text(stringResource(R.string.visual_back)) }
+        CompactActionButton(stringResource(R.string.equalizer_read), "↻", enabled = enabled,
+            onClick = { onAction(EqualizerProtocol.Action.READ) })
+        CompactActionButton(stringResource(R.string.presets_open), "≋", enabled = !state.busy, onClick = onPresets)
+        CompactActionButton(stringResource(R.string.visual_back), "‹", onClick = onBack)
     }
 }

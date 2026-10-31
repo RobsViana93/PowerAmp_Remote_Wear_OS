@@ -85,9 +85,9 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
     }
     if (showDetails) {
         Column(Modifier.fillMaxSize().background(Color.Black)) {
-            Button(onClick = { showDetails = false }, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 16.dp)) {
-                Text(stringResource(R.string.visual_back))
-            }
+            CompactActionButton(stringResource(R.string.visual_back), "‹",
+                modifier = Modifier.padding(horizontal = 24.dp).padding(top = 24.dp),
+                onClick = { showDetails = false })
             Box(Modifier.weight(1f)) { details() }
         }
         return
@@ -174,8 +174,9 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
                     onSeek(seconds, player.trackId, player.trackReportedAt)
                 })
         } else {
-            Button(onClick = { seeking = true }, enabled = enabled && state.visualAvailable && matches &&
-                player.trackId > 0 && duration >= 1000) { Text(stringResource(R.string.visual_seek)) }
+            CompactActionButton(stringResource(R.string.visual_seek), "↔",
+                enabled = enabled && state.visualAvailable && matches && player.trackId > 0 && duration >= 1000,
+                onClick = { seeking = true })
         }
         if (state.seekFailed || state.seekStage != null) {
             val result = when {
@@ -187,7 +188,7 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
             }
             Text(stringResource(result), color = Accent, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
         }
-        Button(onClick = onRefresh, enabled = !state.busy) { Text(stringResource(R.string.refresh_connection)) }
+        CompactActionButton(stringResource(R.string.refresh_connection), "↻", enabled = !state.busy, onClick = onRefresh)
         val refreshProblem = when {
             state.syncNotice == SyncNotice.NO_PHONE -> R.string.visual_disconnected
             state.syncNotice == SyncNotice.UPDATE_COMPANION -> R.string.metadata_update_companion
@@ -207,16 +208,16 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
         Text(if (matches) metadata.album.ifBlank { stringResource(R.string.metadata_album_unknown) }
             else stringResource(R.string.metadata_album_unknown), color = Color.White,
             style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-        Button(onClick = { showControls = true; onAdditionalControl(ControlsProtocol.Action.QUERY) }) {
-            Text(stringResource(R.string.controls_title))
+        CompactActionButton(stringResource(R.string.controls_title), "☷") {
+            showControls = true; onAdditionalControl(ControlsProtocol.Action.QUERY)
         }
-        Button(onClick = { showLibrary = true; onLibrary(LibraryIntent.Open) }, enabled = !state.busy) {
-            Text(stringResource(R.string.library_title))
+        CompactActionButton(stringResource(R.string.library_title), "♪", enabled = !state.busy) {
+            showLibrary = true; onLibrary(LibraryIntent.Open)
         }
-        Button(onClick = { showEqualizer = true; onEqualizer(EqualizerProtocol.Action.READ) }) {
-            Text(stringResource(R.string.equalizer_title))
+        CompactActionButton(stringResource(R.string.equalizer_title), "≋") {
+            showEqualizer = true; onEqualizer(EqualizerProtocol.Action.READ)
         }
-        Button(onClick = { showDetails = true }) { Text(stringResource(R.string.visual_details)) }
+        CompactActionButton(stringResource(R.string.visual_details), "ⓘ", onClick = { showDetails = true })
     }
 }
 
@@ -267,11 +268,13 @@ private fun SeekEditor(position: Long, duration: Long, enabled: Boolean, onCance
     var target by remember { mutableIntStateOf((position / 1000).coerceIn(0, maximum.toLong()).toInt()) }
     Text(stringResource(R.string.visual_seek_target, NowPlayingProtocol.formatTime(target.toLong() * 1000)),
         color = Accent, textAlign = TextAlign.Center)
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Button(onClick = { target = (target - 10).coerceAtLeast(0) }, enabled = enabled && target > 0) { Text("−10s") }
-        Button(onClick = { target = (target.toLong() + 10).coerceAtMost(maximum.toLong()).toInt() },
-            enabled = enabled && target < maximum) { Text("+10s") }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        CompactActionButton("−10s", null, modifier = Modifier.weight(1f), enabled = enabled && target > 0,
+            onClick = { target = (target - 10).coerceAtLeast(0) })
+        CompactActionButton("+10s", null, modifier = Modifier.weight(1f), enabled = enabled && target < maximum,
+            onClick = { target = (target.toLong() + 10).coerceAtMost(maximum.toLong()).toInt() })
     }
-    Button(onClick = { onConfirm(target) }, enabled = enabled) { Text(stringResource(R.string.visual_seek_confirm)) }
-    Button(onClick = onCancel) { Text(stringResource(R.string.visual_cancel)) }
+    CompactActionButton(stringResource(R.string.visual_seek_confirm), "✓", enabled = enabled,
+        prominent = true, onClick = { onConfirm(target) })
+    CompactActionButton(stringResource(R.string.visual_cancel), "×", onClick = onCancel)
 }

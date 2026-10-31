@@ -11,12 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.material3.Button
-import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import com.powerampremote.wear.R
@@ -40,7 +36,7 @@ internal fun AdditionalControlsScreen(state: CommunicationState, onAction: (Cont
     Column(Modifier.fillMaxSize().background(Background).verticalScroll(rememberScrollState())
         .padding(horizontal = 28.dp, vertical = 24.dp), horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(onClick = onBack) { Text(stringResource(R.string.visual_back)) }
+        CompactActionButton(stringResource(R.string.visual_back), "‹", onClick = onBack)
         Text(stringResource(R.string.controls_title), color = Color.White, textAlign = TextAlign.Center)
         if (!state.controlsAvailable) Text(stringResource(R.string.controls_update_companion), color = Color.White,
             textAlign = TextAlign.Center)
@@ -69,11 +65,13 @@ internal fun AdditionalControlsScreen(state: CommunicationState, onAction: (Cont
         SectionTitle(R.string.controls_media_title)
         StateCard(if (snapshot.volume >= 0) stringResource(R.string.controls_volume_value, snapshot.volume, snapshot.maximum)
             else stringResource(R.string.controls_unknown))
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ActionButton(R.string.controls_volume_down, ControlsProtocol.Action.MEDIA_DOWN,
-                enabled && !snapshot.fixed && snapshot.volume > snapshot.minimum, onAction)
+                enabled && !snapshot.fixed && snapshot.volume > snapshot.minimum, onAction,
+                modifier = Modifier.weight(1f))
             ActionButton(R.string.controls_volume_up, ControlsProtocol.Action.MEDIA_UP,
-                enabled && !snapshot.fixed && snapshot.volume >= 0 && snapshot.volume < snapshot.maximum, onAction)
+                enabled && !snapshot.fixed && snapshot.volume >= 0 && snapshot.volume < snapshot.maximum, onAction,
+                modifier = Modifier.weight(1f))
         }
         Text(stringResource(if (snapshot.fixed) R.string.controls_volume_fixed else R.string.controls_volume_scope),
             color = Secondary, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
@@ -88,19 +86,21 @@ internal fun AdditionalControlsScreen(state: CommunicationState, onAction: (Cont
         }
         Text(stringResource(notice), color = Color.White, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
         ActionButton(R.string.controls_read, ControlsProtocol.Action.QUERY, enabled, onAction)
-        Button(onClick = onBack) { Text(stringResource(R.string.visual_back)) }
+        CompactActionButton(stringResource(R.string.visual_back), "‹", onClick = onBack)
     }
 }
 
 @Composable
 private fun ActionButton(label: Int, action: ControlsProtocol.Action, enabled: Boolean,
-                         onAction: (ControlsProtocol.Action) -> Unit, selected: Boolean = false) {
-    Button(onClick = { onAction(action) }, enabled = enabled,
-        modifier = Modifier.semantics { if (selected) this.selected = true },
-        colors = ButtonDefaults.buttonColors(containerColor = if (selected) Accent else Surface,
-            contentColor = if (selected) Color(0xFF061A30) else Color.White)) {
-        Text(stringResource(label), textAlign = TextAlign.Center)
+                         onAction: (ControlsProtocol.Action) -> Unit, modifier: Modifier = Modifier,
+                         selected: Boolean? = null) {
+    val symbol = when (action) {
+        ControlsProtocol.Action.QUERY -> "↻"
+        ControlsProtocol.Action.MEDIA_DOWN, ControlsProtocol.Action.MEDIA_UP -> null
+        else -> "♪"
     }
+    CompactActionButton(stringResource(label), symbol, modifier = modifier, enabled = enabled,
+        selected = selected, onClick = { onAction(action) })
 }
 
 @Composable

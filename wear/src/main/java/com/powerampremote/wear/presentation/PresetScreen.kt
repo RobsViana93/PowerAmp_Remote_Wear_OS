@@ -15,13 +15,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.material3.Button
-import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import com.powerampremote.wear.R
@@ -75,10 +71,8 @@ internal fun PresetScreen(state: CommunicationState, onAction: (PresetIntent) ->
             }
             item { Text(stringResource(R.string.presets_scope), color = Secondary,
                 textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall) }
-            item { Button(onClick = { onAction(PresetIntent.Apply) }, enabled = enabled,
-                colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Color(0xFF061A30))) {
-                Text(stringResource(R.string.presets_apply))
-            } }
+            item { CompactActionButton(stringResource(R.string.presets_apply), "✓", enabled = enabled,
+                prominent = true, onClick = { onAction(PresetIntent.Apply) }) }
         }
         presets.lastRequested?.let { last ->
             item { Text(stringResource(R.string.presets_last_request, last.name), color = Secondary,
@@ -90,28 +84,17 @@ internal fun PresetScreen(state: CommunicationState, onAction: (PresetIntent) ->
         for (preset in presets.page?.items.orEmpty()) {
             item(key = preset.id) {
                 val chosen = presets.selected?.id == preset.id
-                Button(onClick = { onAction(PresetIntent.Select(preset)) }, enabled = enabled,
-                    modifier = Modifier.fillMaxWidth().semantics { if (chosen) selected = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = if (chosen) Accent else Surface,
-                        contentColor = if (chosen) Color(0xFF061A30) else Color.White)) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(preset.name, maxLines = 3, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-                        Text(stringResource(if (preset.parametric) R.string.presets_parametric else R.string.presets_graphic),
-                            color = if (!enabled) Color(0xFF7D8794) else if (chosen) Color(0xFF173F68) else Secondary,
-                            style = MaterialTheme.typography.labelSmall)
-                    }
-                }
+                CompactActionButton(preset.name, "≋", enabled = enabled, selected = chosen,
+                    subtitle = stringResource(if (preset.parametric) R.string.presets_parametric else R.string.presets_graphic),
+                    onClick = { onAction(PresetIntent.Select(preset)) })
             }
         }
-        if (presets.canGoPrevious) item { Button(onClick = { onAction(PresetIntent.Previous) }, enabled = enabled) {
-            Text(stringResource(R.string.presets_previous))
-        } }
-        if (presets.canGoNext) item { Button(onClick = { onAction(PresetIntent.Next) }, enabled = enabled) {
-            Text(stringResource(R.string.presets_next))
-        } }
-        item { Button(onClick = { onAction(PresetIntent.Refresh) }, enabled = enabled) {
-            Text(stringResource(R.string.presets_refresh))
-        } }
-        item { Button(onClick = onBack) { Text(stringResource(R.string.visual_back)) } }
+        if (presets.canGoPrevious) item { CompactActionButton(stringResource(R.string.presets_previous), "‹",
+            enabled = enabled, onClick = { onAction(PresetIntent.Previous) }) }
+        if (presets.canGoNext) item { CompactActionButton(stringResource(R.string.presets_next), "›",
+            enabled = enabled, onClick = { onAction(PresetIntent.Next) }) }
+        item { CompactActionButton(stringResource(R.string.presets_refresh), "↻",
+            enabled = enabled, onClick = { onAction(PresetIntent.Refresh) }) }
+        item { CompactActionButton(stringResource(R.string.visual_back), "‹", onClick = onBack) }
     }
 }

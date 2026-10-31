@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.material3.Button
+import com.powerampremote.wear.presentation.CompactActionButton
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import com.powerampremote.wear.communication.CommunicationState
@@ -106,12 +106,10 @@ private fun CommunicationScreen(state: CommunicationState, onTest: () -> Unit, o
             color = if (state.connection == Connection.AVAILABLE) Color(0xFF80CBC4) else Color.White)
         NowPlayingInformation(state)
         PlayerControls(state, onCommand)
-        Button(onClick = onRefresh, enabled = !state.busy && state.connection != Connection.CHECKING) {
-            Text(stringResource(R.string.refresh_connection))
-        }
-        Button(onClick = onTest, enabled = !state.busy && state.connection == Connection.AVAILABLE) {
-            Text(stringResource(R.string.send_test))
-        }
+        CompactActionButton(stringResource(R.string.refresh_connection), "↻",
+            enabled = !state.busy && state.connection != Connection.CHECKING, onClick = onRefresh)
+        CompactActionButton(stringResource(R.string.send_test), "↔",
+            enabled = !state.busy && state.connection == Connection.AVAILABLE, onClick = onTest)
         Text(stringResource(phaseText), textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodySmall, color = Color.White)
     }
@@ -199,10 +197,15 @@ private fun PlayerControls(state: CommunicationState, onCommand: (PlayerProtocol
             PlayerProtocol.Command.NEXT -> R.string.player_next
             PlayerProtocol.Command.PREVIOUS -> R.string.player_previous
         }
-        Button(onClick = { onCommand(command) }, enabled = !state.busy &&
-                state.connection == Connection.AVAILABLE && state.playerAvailable) {
-            Text(stringResource(label))
+        val symbol = when (command) {
+            PlayerProtocol.Command.PLAY -> "▶"
+            PlayerProtocol.Command.PAUSE -> "Ⅱ"
+            PlayerProtocol.Command.NEXT -> "›"
+            PlayerProtocol.Command.PREVIOUS -> "‹"
         }
+        CompactActionButton(stringResource(label), symbol, enabled = !state.busy &&
+            state.connection == Connection.AVAILABLE && state.playerAvailable,
+            onClick = { onCommand(command) })
     }
     if (state.connection == Connection.AVAILABLE && !state.playerAvailable) {
         Text(stringResource(R.string.player_update_companion), color = Color.White, textAlign = TextAlign.Center)

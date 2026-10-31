@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Três barras de áudio e dois arcos de conexão, dentro da área segura. -->
+    <path android:fillColor="#72B7FF"
+        android:pathData="M34.5,52 A3.5,3.5 0,0 1,38,55.5 L38,72.5 A3.5,3.5 0,0 1,31,72.5 L31,55.5 A3.5,3.5 0,0 1,34.5,52 Z M47.5,39 A3.5,3.5 0,0 1,51,42.5 L51,72.5 A3.5,3.5 0,0 1,44,72.5 L44,42.5 A3.5,3.5 0,0 1,47.5,39 Z M60.5,59 A3.5,3.5 0,0 1,64,62.5 L64,72.5 A3.5,3.5 0,0 1,57,72.5 L57,62.5 A3.5,3.5 0,0 1,60.5,59 Z" />
+    <path android:fillColor="@android:color/transparent" android:strokeColor="#72B7FF"
+        android:strokeWidth="4" android:strokeLineCap="round"
+        android:pathData="M55,37 A12,12 0,0 1,67,49 M55,27 A22,22 0,0 1,77,49" />
+</vector>
