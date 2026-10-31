@@ -475,7 +475,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
         while (missingAlbumArt.size > 48) missingAlbumArt.remove(missingAlbumArt.keys.first())
     }
 
-    /** Recebe somente os IDs de cartões visíveis; uma miniatura trafega por vez. */
+    /** Recebe os álbuns visíveis ou o álbum aberto; uma miniatura trafega por vez. */
     fun visibleAlbumArt(ids: List<Long>) {
         visibleAlbumIds = ids.filter { it > 0 }.distinct()
         if (visibleAlbumIds.isEmpty() || albumArtJob?.isActive == true) return
@@ -487,7 +487,8 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                         (missingAlbumArt[id]?.let { now - it >= 10 * 60_000 } != false)
                 } ?: break
                 val nodeId = selectedPhoneId ?: break
-                if (albumArtNode != nodeId || mutableState.value.library.album != null) break
+                val openedAlbum = mutableState.value.library.album
+                if (albumArtNode != nodeId || (openedAlbum != null && openedAlbum.id != albumId)) break
                 val missingAt = missingAlbumArt[albumId]
                 if (missingAt != null && SystemClock.elapsedRealtime() - missingAt < 10 * 60_000) continue
                 if (albumId !in visibleAlbumIds) continue

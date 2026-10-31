@@ -2,6 +2,23 @@
 
 **Etapa atual: versão 1.0.** Use o [roteiro de aprovação física](V1_0.md#roteiro-de-aprovação-física). A versão 0.7 foi aprovada pelo usuário no Galaxy S23+ e Watch 7; a 0.8 foi testada por ele no Android Emulator. A atualização física foi adiada até esta etapa e ainda precisa ser aprovada. As seções anteriores permanecem como histórico; suas pendências não indicam que os testes tenham sido executados posteriormente.
 
+## Ajuste visual da biblioteca — 30/10/2026
+
+As faixas agora usam linhas com capa de 44 dp à esquerda e título à direita em até
+duas linhas, com artista em uma linha abaixo. A linha inteira é tocável, com altura
+mínima de 64 dp, sem caixa de fundo. Uma única miniatura do álbum aberto é compartilhada
+pelas faixas; quando não há capa, aparece uma nota musical. A navegação usa controles de menor
+destaque, com símbolos e rótulos; os alvos de toque têm no mínimo 48 dp e altura
+flexível para fonte ampliada. O texto completo das faixas permanece no TalkBack.
+
+Validação executada: `:wear:assembleDebug`, `:wear:lintDebug` e
+`:wear:testDebugUnitTest`, com build bem-sucedido e 79 testes sem falhas.
+APK: `wear/build/outputs/apk/debug/wear-debug.apk`.
+
+Pendente no relógio: conferir títulos longos, fonte ampliada, toque para reproduzir,
+paginação nas listas de álbuns/faixas, retorno aos álbuns e leitura pelo TalkBack.
+Esta alteração ainda não foi instalada nem validada visualmente em dispositivo.
+
 ## Estado
 
 Java foi executado e retornou Temurin 21.0.12.1. O comando gradlew.bat --version foi executado com sucesso: Gradle 9.3.1, Launcher JVM 21.0.12.1. O Kotlin 2.2.21 exibido nesse comando é o Kotlin interno do Gradle, não a versão do compilador do aplicativo. Na inspeção inicial, SDK e Studio não foram encontrados nos locais inspecionados. Na validação posterior, o SDK já estava configurado em local.properties, com as plataformas 36 e 37.0 instaladas. A compilação dos dois módulos e o lint passaram após ajustar compileSdk para 37. O usuário confirmou que as telas iniciais abriram no Wear OS e no celular. Sem teste de comunicação ou Poweramp nesta etapa.

@@ -35,8 +35,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
-import androidx.wear.compose.material3.Button
-import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import com.powerampremote.wear.R
@@ -47,6 +45,8 @@ private val LibraryBackground = Color(0xFF080B10)
 private val LibrarySurface = Color(0xFF1D2938)
 private val LibraryAccent = Color(0xFF72B7FF)
 private val LibrarySecondary = Color(0xFFD1DAE7)
+private val LibraryNavigation = Color(0xFF111923)
+private val LibraryDisabled = Color(0xFF7D8794)
 
 @Composable
 internal fun LibraryScreen(state: CommunicationState, onAction: (LibraryIntent) -> Unit,
@@ -63,7 +63,7 @@ internal fun LibraryScreen(state: CommunicationState, onAction: (LibraryIntent) 
         LibraryProtocol.Stage.UNAVAILABLE, LibraryProtocol.Stage.NOT_FOUND, LibraryProtocol.Stage.EXPIRED, LibraryProtocol.Stage.ERROR)
     LaunchedEffect(album?.id, page?.request?.id, failed) { list.scrollToItem(0); focus.requestFocus() }
     LaunchedEffect(album?.id, page?.request?.id) {
-        if (album != null) onVisibleAlbumArt(emptyList())
+        if (album != null) onVisibleAlbumArt(listOf(album.id))
         else snapshotFlow { list.layoutInfo.visibleItemsInfo.mapNotNull { it.key as? Long } }
             .distinctUntilChanged().collectLatest { onVisibleAlbumArt(it) }
     }
@@ -76,14 +76,15 @@ internal fun LibraryScreen(state: CommunicationState, onAction: (LibraryIntent) 
             Text(stringResource(if (album == null) R.string.library_title else R.string.library_tracks_title),
                 color = Color.White, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center)
         }
-        if (album != null) item {
+        if (album != null) item { Column(verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally) {
             Text(album.title.ifBlank { stringResource(R.string.library_unknown_album) }, color = LibraryAccent,
                 style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, maxLines = 3,
                 overflow = TextOverflow.Ellipsis)
-            Button(onClick = { onAction(LibraryIntent.PlayAlbum) }, enabled = available && !failed && page?.items?.isNotEmpty() == true) {
-                Text(stringResource(R.string.library_play_album), textAlign = TextAlign.Center)
-            }
-        }
+            LibraryAction(stringResource(R.string.library_play_album), "▶",
+                enabled = available && !failed && page?.items?.isNotEmpty() == true, prominent = true,
+                onClick = { onAction(LibraryIntent.PlayAlbum) })
+        } }
         val notice = when {
             state.busy -> R.string.library_loading
             state.connection != Connection.AVAILABLE -> R.string.library_disconnected
@@ -100,43 +101,87 @@ internal fun LibraryScreen(state: CommunicationState, onAction: (LibraryIntent) 
             album != null -> R.string.library_track_hint
             else -> R.string.library_album_hint
         }
-        item { Text(stringResource(notice), color = Color.White, style = MaterialTheme.typography.bodySmall,
+        item { Text(stringResource(notice), color = LibrarySecondary, style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center) }
         if (!failed && page != null) items(page.items, key = { it.id }) { entry ->
             if (album == null) {
                 AlbumTile(entry, state.albumArt[entry.id], available) { onAction(LibraryIntent.OpenAlbum(entry)) }
             } else {
-                Button(onClick = { onAction(LibraryIntent.PlayTrack(entry.id)) },
-                    enabled = available, modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = LibrarySurface, contentColor = Color.White)) {
-                    Column(Modifier.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(entry.title.ifBlank { stringResource(R.string.library_unknown_track) },
-                            maxLines = 3, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-                        Text(entry.subtitle.ifBlank { album.subtitle.ifBlank { stringResource(R.string.library_unknown_artist) } },
-                            color = if (available) LibrarySecondary else Color(0xFF7D8794),
-                            style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center)
-                    }
+                TrackRow(entry, album.subtitle, state.albumArt[album.id], available) {
+                    onAction(LibraryIntent.PlayTrack(entry.id))
                 }
             }
         }
         if (library.canGoPrevious && !failed) item {
-            Button(onClick = { onAction(LibraryIntent.Previous) }, enabled = available) { Text(stringResource(R.string.library_previous)) }
+            LibraryAction(stringResource(R.string.library_previous), "‹", enabled = available,
+                onClick = { onAction(LibraryIntent.Previous) })
         }
         if (!failed && !page?.next.isNullOrEmpty()) item {
-            Button(onClick = { onAction(LibraryIntent.Next) }, enabled = available) { Text(stringResource(R.string.library_next)) }
+            LibraryAction(stringResource(R.string.library_next), "›", enabled = available,
+                onClick = { onAction(LibraryIntent.Next) })
         }
+        item { LibraryAction(stringResource(R.string.library_refresh), "↻", enabled = available,
+            onClick = { onAction(LibraryIntent.Refresh) }) }
         item {
-            Button(onClick = { onAction(LibraryIntent.Refresh) }, enabled = available) { Text(stringResource(R.string.library_refresh)) }
-            Text(stringResource(R.string.library_changes), color = Color.White, style = MaterialTheme.typography.bodySmall,
+            Text(stringResource(R.string.library_changes), color = LibrarySecondary, style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Center)
         }
         if (album != null) item {
-            Button(onClick = { onAction(LibraryIntent.Albums) }) { Text(stringResource(R.string.library_back_albums)) }
+            LibraryAction(stringResource(R.string.library_back_albums), "‹",
+                onClick = { onAction(LibraryIntent.Albums) })
         }
-        item {
-            Button(onClick = onPlayer) { Text(stringResource(R.string.library_player)) }
-            Button(onClick = onClose) { Text(stringResource(R.string.visual_back)) }
+        item { LibraryAction(stringResource(R.string.library_player), "♪", onClick = onPlayer) }
+        item { LibraryAction(stringResource(R.string.visual_back), "‹", onClick = onClose) }
+    }
+}
+
+/** Altura flexível para fonte ampliada, com alvo de toque de pelo menos 48 dp. */
+@Composable
+private fun LibraryAction(label: String, symbol: String, enabled: Boolean = true,
+                          prominent: Boolean = false, onClick: () -> Unit) {
+    val foreground = if (!enabled) LibraryDisabled else if (prominent) LibraryAccent else LibrarySecondary
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp))
+        .background(if (prominent) LibrarySurface else LibraryNavigation)
+        .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+        .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(symbol, modifier = Modifier.width(20.dp).clearAndSetSemantics { },
+            color = foreground, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+        Text(label, color = foreground, style = MaterialTheme.typography.bodySmall,
+            fontWeight = if (prominent) FontWeight.SemiBold else FontWeight.Normal,
+            modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun TrackRow(entry: LibraryProtocol.Item, albumArtist: String, artwork: android.graphics.Bitmap?,
+                     enabled: Boolean, onClick: () -> Unit) {
+    val title = entry.title.ifBlank { stringResource(R.string.library_unknown_track) }
+    val artist = entry.subtitle.ifBlank { albumArtist.ifBlank { stringResource(R.string.library_unknown_artist) } }
+    Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).clip(RoundedCornerShape(12.dp))
+        .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+        .clearAndSetSemantics {
+            contentDescription = "$title, $artist"
+            role = Role.Button
+            if (enabled) onClick { onClick(); true } else disabled()
+        }
+        .padding(horizontal = 4.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(Modifier.size(44.dp).clip(RoundedCornerShape(8.dp)).background(LibrarySurface),
+            contentAlignment = Alignment.Center) {
+            if (artwork != null) Image(artwork.asImageBitmap(), contentDescription = null,
+                contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            else Text("♪", color = if (enabled) LibraryAccent else LibraryDisabled,
+                style = MaterialTheme.typography.titleMedium)
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, color = if (enabled) Color.White else LibraryDisabled,
+                style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold,
+                maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(artist, color = if (enabled) LibrarySecondary else LibraryDisabled,
+                style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
