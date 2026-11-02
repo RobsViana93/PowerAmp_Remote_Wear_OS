@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.Text
@@ -161,6 +162,18 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
         }
         Text(stringResource(if (state.busy) R.string.visual_busy else playback), color = Color.White,
             style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+        val playing = player.state == PlayerProtocol.State.PLAYING
+        var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+        LaunchedEffect(playing) {
+            now = System.currentTimeMillis()
+            while (playing) { now = System.currentTimeMillis(); delay(1_000) }
+        }
+        state.listening?.let { listening ->
+            val (today, total) = ListeningProtocol.live(if (playing) listening else listening.copy(playingSince = 0), now)
+            Text(stringResource(R.string.listening_time, ListeningProtocol.format(today), ListeningProtocol.format(total)),
+                color = SecondaryText, style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, lineHeight = 12.sp,
+                textAlign = TextAlign.Center)
+        }
         if (state.playerStage in setOf(PlayerProtocol.Stage.ERROR, PlayerProtocol.Stage.NO_UPDATE,
                 PlayerProtocol.Stage.NOT_INSTALLED, PlayerProtocol.Stage.UNSUPPORTED) ||
             state.playerNotice in setOf(PlayerNotice.FAILED, PlayerNotice.TIMEOUT, PlayerNotice.INCOMPATIBLE, PlayerNotice.NO_PHONE)) {

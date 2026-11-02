@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
 import com.powerampremote.mobile.communication.NowPlayingProtocol
+import com.powerampremote.mobile.communication.ListeningProtocol
 import java.util.Base64
 
 /** Últimos eventos informados pelo player. UNKNOWN não significa pausado. */
@@ -91,6 +92,7 @@ object PowerampRepository {
             after.trackReportedAt != before.trackReportedAt) -1 else artRealId
         if (before == after && metadataBefore == metadataAfter && nextRealId == artRealId) return false
         artRealId = nextRealId
+        ListeningStats.onEvent(context, after.state, at)
         mutableSnapshot.value = after
         mutableNowPlaying.value = metadataAfter
         context.getSharedPreferences("poweramp_state", Context.MODE_PRIVATE).edit()
@@ -138,6 +140,8 @@ object PowerampRepository {
             request.dataMap.putByteArray("snapshot", PlayerProtocol.encodeSnapshot(read(context)))
             request.dataMap.putByteArray(NowPlayingProtocol.DATA_KEY,
                 NowPlayingProtocol.encode(mutableNowPlaying.value))
+            request.dataMap.putByteArray(ListeningProtocol.DATA_KEY,
+                ListeningProtocol.encode(ListeningStats.snapshot(context)))
         }
         Wearable.getDataClient(context).putDataItem(request.asPutDataRequest().setUrgent()).await()
         AlbumArtPublisher.publish(context)

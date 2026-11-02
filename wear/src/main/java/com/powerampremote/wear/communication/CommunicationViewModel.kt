@@ -52,6 +52,7 @@ data class CommunicationState(
     val playerNotice: PlayerNotice = PlayerNotice.IDLE,
     val playerCommand: PlayerProtocol.Command? = null,
     val nowPlaying: NowPlayingProtocol.Snapshot = NowPlayingProtocol.Snapshot(),
+    val listening: ListeningProtocol.Snapshot? = null,
     val metadataAvailable: Boolean = false,
     val syncStage: NowPlayingProtocol.SyncStage? = null,
     val syncNotice: SyncNotice = SyncNotice.IDLE,
@@ -926,6 +927,9 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
     private fun acceptDataMap(data: DataMap) {
         val player = data.getByteArray("snapshot")?.let(PlayerProtocol::decodeSnapshot) ?: return
         acceptSnapshot(player)
+        data.getByteArray(ListeningProtocol.DATA_KEY)?.let(ListeningProtocol::decode)?.let { listening ->
+            mutableState.update { it.copy(listening = listening) }
+        }
         val metadata = data.getByteArray(NowPlayingProtocol.DATA_KEY)?.let(NowPlayingProtocol::decode) ?: return
         val state = mutableState.value
         if (metadata.metadataAt < state.nowPlaying.metadataAt) return
@@ -970,6 +974,9 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                     original.getByteArray("snapshot")?.let { putByteArray("snapshot", it.copyOf()) }
                     original.getByteArray(NowPlayingProtocol.DATA_KEY)?.let {
                         putByteArray(NowPlayingProtocol.DATA_KEY, it.copyOf())
+                    }
+                    original.getByteArray(ListeningProtocol.DATA_KEY)?.let {
+                        putByteArray(ListeningProtocol.DATA_KEY, it.copyOf())
                     }
                 }
             } catch (_: RuntimeException) { continue }
