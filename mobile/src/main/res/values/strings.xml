@@ -26,4 +26,14 @@ Companion</string>
     <string name="metadata_album">Álbum: %1$s</string>
     <string name="metadata_position">Posição informada: %1$s / %2$s</string>
     <string name="metadata_waiting">Aguardando informações da faixa. Selecione uma música no Poweramp após atualizar o Companion.</string>
+    <string name="listening_title">Tempo ouvindo</string>
+    <string name="listening_today">Hoje</string>
+    <string name="listening_week">Semana</string>
+    <string name="listening_month">Mês</string>
+    <string name="listening_range_day">Dia</string>
+    <string name="listening_range_week">Semana</string>
+    <string name="listening_range_month">Mês</string>
+    <string name="listening_export">Exportar CSV</string>
+    <string name="listening_export_ok">CSV exportado.</string>
+    <string name="listening_export_failed">Não foi possível exportar o CSV.</string>
 </resources>

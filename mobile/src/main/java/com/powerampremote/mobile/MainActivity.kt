@@ -124,6 +124,7 @@ private fun IdentificationScreen() {
             }) { Text(stringResource(R.string.player_open)) }
             if (openFailed) Text(stringResource(R.string.player_open_failed), color = MaterialTheme.colorScheme.error)
         }
+        CompanionSection { ListeningPanel() }
         CompanionSection { LibraryAccessPanel() }
         CompanionSection {
             Text(stringResource(R.string.home_diagnostics_title), style = MaterialTheme.typography.titleLarge)

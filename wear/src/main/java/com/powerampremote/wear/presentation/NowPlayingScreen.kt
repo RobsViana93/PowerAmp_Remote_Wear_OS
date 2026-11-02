@@ -53,12 +53,13 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
     var showEqualizer by remember { mutableStateOf(false) }
     var showLibrary by remember { mutableStateOf(false) }
     var showPresets by remember { mutableStateOf(false) }
+    var showHistory by remember { mutableStateOf(false) }
     var seeking by remember(state.playerSnapshot.trackId, state.playerSnapshot.trackReportedAt) { mutableStateOf(false) }
-    SideEffect { onPlayerVisibility(!showDetails && !showControls && !showEqualizer && !showLibrary && !showPresets && !seeking) }
+    SideEffect { onPlayerVisibility(!showDetails && !showControls && !showEqualizer && !showLibrary && !showPresets && !showHistory && !seeking) }
     DisposableEffect(Unit) { onDispose { onPlayerVisibility(false) } }
-    BackHandler(enabled = showDetails || showControls || showEqualizer || showLibrary || showPresets || seeking) {
+    BackHandler(enabled = showDetails || showControls || showEqualizer || showLibrary || showPresets || showHistory || seeking) {
         when { showPresets -> { showPresets = false; onPresets(PresetIntent.Close) }
-            showDetails -> showDetails = false; showControls -> showControls = false
+            showHistory -> showHistory = false; showDetails -> showDetails = false; showControls -> showControls = false
             showLibrary -> if (state.library.album != null) onLibrary(LibraryIntent.Albums)
                 else { showLibrary = false; onLibrary(LibraryIntent.Close) }
             showEqualizer -> showEqualizer = false; else -> seeking = false }
@@ -78,6 +79,10 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
         EqualizerScreen(state, onEqualizer, onPresets = { showPresets = true; onPresets(PresetIntent.Open) }) {
             showEqualizer = false
         }
+        return
+    }
+    if (showHistory) {
+        ListeningHistoryScreen(state) { showHistory = false }
         return
     }
     if (showControls) {
@@ -169,9 +174,14 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
             while (playing) { now = System.currentTimeMillis(); delay(1_000) }
         }
         state.listening?.let { listening ->
-            val (today, total) = ListeningProtocol.live(if (playing) listening else listening.copy(playingSince = 0), now)
-            Text(stringResource(R.string.listening_time, ListeningProtocol.format(today), ListeningProtocol.format(total)),
+            val days = ListeningProtocol.withOpen(if (playing) listening else listening.copy(playingSince = 0), now)
+            val today = ListeningProtocol.today(days, now)
+            val week = ListeningProtocol.week(days, now)
+            val month = ListeningProtocol.month(days, now)
+            Text(stringResource(R.string.listening_time, ListeningProtocol.format(today),
+                ListeningProtocol.format(week), ListeningProtocol.format(month)),
                 color = SecondaryText, style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, lineHeight = 12.sp,
+                maxLines = 2, overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center)
         }
         if (state.playerStage in setOf(PlayerProtocol.Stage.ERROR, PlayerProtocol.Stage.NO_UPDATE,
@@ -230,6 +240,7 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
         CompactActionButton(stringResource(R.string.equalizer_title), "≋") {
             showEqualizer = true; onEqualizer(EqualizerProtocol.Action.READ)
         }
+        CompactActionButton(stringResource(R.string.listening_history), "◷") { showHistory = true }
         CompactActionButton(stringResource(R.string.visual_details), "ⓘ", onClick = { showDetails = true })
     }
 }

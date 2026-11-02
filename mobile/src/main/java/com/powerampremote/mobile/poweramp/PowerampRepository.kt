@@ -141,7 +141,8 @@ object PowerampRepository {
             request.dataMap.putByteArray(NowPlayingProtocol.DATA_KEY,
                 NowPlayingProtocol.encode(mutableNowPlaying.value))
             request.dataMap.putByteArray(ListeningProtocol.DATA_KEY,
-                ListeningProtocol.encode(ListeningStats.snapshot(context)))
+                ListeningProtocol.encode(ListeningProtocol.recent(ListeningStats.snapshot(context),
+                    ListeningProtocol.epochDay(System.currentTimeMillis()))))
         }
         Wearable.getDataClient(context).putDataItem(request.asPutDataRequest().setUrgent()).await()
         AlbumArtPublisher.publish(context)
