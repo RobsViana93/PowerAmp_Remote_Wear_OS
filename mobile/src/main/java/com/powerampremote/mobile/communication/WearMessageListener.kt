@@ -60,7 +60,7 @@ class WearMessageListener : WearableListenerService() {
             try {
                 Tasks.await(Wearable.getMessageClient(this).sendMessage(event.sourceNodeId,
                     LibraryProtocol.RESULT_PATH, LibraryProtocol.encodeResult(result)), 2, TimeUnit.SECONDS)
-                if (!LibraryProtocol.browsing(request.action)) runBlocking {
+                if (!LibraryProtocol.browsing(request.action) && request.action != LibraryProtocol.Action.CURRENT_ALBUM) runBlocking {
                     withTimeout(3_000) { PowerampRepository.publish(this@WearMessageListener) }
                 }
             } catch (_: InterruptedException) { Thread.currentThread().interrupt() }

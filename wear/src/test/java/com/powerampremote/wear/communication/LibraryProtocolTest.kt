@@ -12,7 +12,7 @@ class LibraryProtocolTest {
 
     @Test fun requestsRoundTripWithoutQueriesOrUris() {
         for (action in LibraryProtocol.Action.entries) {
-            val request = request(action)
+            val request = if (action == LibraryProtocol.Action.CURRENT_ALBUM) LibraryProtocol.Request(id, action) else request(action)
             assertEquals(request, LibraryProtocol.decode(LibraryProtocol.encode(request)))
         }
         val page = request().copy(cursor = token)
@@ -77,6 +77,20 @@ class LibraryProtocolTest {
         val command = LibraryProtocol.encode(request())
         assertNull(LibraryProtocol.decode(command + byteArrayOf(0)))
         assertNull(LibraryProtocol.decode(command.copyOf(10)))
+    }
+    @Test fun currentAlbumResults() {
+        val current = LibraryProtocol.Request(id, LibraryProtocol.Action.CURRENT_ALBUM)
+        assertEquals(current, LibraryProtocol.decode(LibraryProtocol.encode(current)))
+        assertNull(LibraryProtocol.decode(LibraryProtocol.encode(current.copy(albumId = 5))))
+        assertNull(LibraryProtocol.decode(LibraryProtocol.encode(current.copy(cursor = token))))
+        val album = LibraryProtocol.Item(7, "Álbum", "Artista")
+        val page = LibraryProtocol.Result(current, LibraryProtocol.Stage.PAGE, listOf(album))
+        assertEquals(page, LibraryProtocol.decodeResult(LibraryProtocol.encodeResult(page)))
+        assertNull(LibraryProtocol.decodeResult(LibraryProtocol.encodeResult(page.copy(items = emptyList()))))
+        assertNull(LibraryProtocol.decodeResult(LibraryProtocol.encodeResult(page.copy(items = listOf(album, LibraryProtocol.Item(8, "Outro"))))))
+        assertNull(LibraryProtocol.decodeResult(LibraryProtocol.encodeResult(page.copy(stage = LibraryProtocol.Stage.OBSERVED))))
+        val notFound = LibraryProtocol.Result(current, LibraryProtocol.Stage.NOT_FOUND)
+        assertEquals(notFound, LibraryProtocol.decodeResult(LibraryProtocol.encodeResult(notFound)))
     }
     @Test fun trackChangeCanConfirmWithFreshSessionWithoutNewStatusBroadcast() {
         val request = request(LibraryProtocol.Action.PLAY_TRACK)

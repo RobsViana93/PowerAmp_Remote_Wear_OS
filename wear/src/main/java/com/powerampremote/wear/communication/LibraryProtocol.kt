@@ -14,7 +14,7 @@ object LibraryProtocol {
     const val TEXT_LIMIT = 160
     const val MAX_BYTES = 20_000
     private val uuid = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
-    enum class Action { ALBUMS, TRACKS, PLAY_ALBUM, PLAY_TRACK }
+    enum class Action { ALBUMS, TRACKS, PLAY_ALBUM, PLAY_TRACK, CURRENT_ALBUM }
     enum class Stage { PAGE, REQUESTED, OBSERVED, DENIED, UNAVAILABLE, NOT_FOUND, EXPIRED, ERROR }
     data class Request(val id: String, val action: Action, val albumId: Long = 0,
                        val trackId: Long = 0, val cursor: String = "")
@@ -28,6 +28,7 @@ object LibraryProtocol {
             Action.TRACKS -> request.albumId > 0 && request.trackId == 0L
             Action.PLAY_ALBUM -> request.albumId > 0 && request.trackId == 0L && request.cursor.isEmpty()
             Action.PLAY_TRACK -> request.albumId > 0 && request.trackId > 0 && request.cursor.isEmpty()
+            Action.CURRENT_ALBUM -> request.albumId == 0L && request.trackId == 0L && request.cursor.isEmpty()
         }
     fun valid(result: Result): Boolean {
         if (!valid(result.request) || result.items.size > PAGE_SIZE ||
@@ -35,6 +36,9 @@ object LibraryProtocol {
         if (result.next.isNotEmpty() && result.next == result.request.cursor) return false
         if (result.items.any { it.id <= 0 || it.title.length > TEXT_LIMIT || it.subtitle.length > TEXT_LIMIT } ||
             result.items.map { it.id }.distinct().size != result.items.size) return false
+        if (result.request.action == Action.CURRENT_ALBUM) return result.next.isEmpty() &&
+            if (result.stage == Stage.PAGE) result.items.size == 1
+            else result.items.isEmpty() && result.stage !in setOf(Stage.REQUESTED, Stage.OBSERVED, Stage.EXPIRED)
         if (result.stage == Stage.PAGE) return browsing(result.request.action) &&
             (result.next.isEmpty() || result.items.size == PAGE_SIZE)
         if (result.items.isNotEmpty() || result.next.isNotEmpty()) return false

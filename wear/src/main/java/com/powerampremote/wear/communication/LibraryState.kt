@@ -15,6 +15,7 @@ sealed interface LibraryIntent {
     data object Next : LibraryIntent
     data object Previous : LibraryIntent
     data object Albums : LibraryIntent
+    data object CurrentAlbum : LibraryIntent
     data object PlayAlbum : LibraryIntent
     data class OpenAlbum(val album: LibraryProtocol.Item) : LibraryIntent
     data class PlayTrack(val id: Long) : LibraryIntent

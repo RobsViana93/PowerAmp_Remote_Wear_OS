@@ -48,7 +48,11 @@ class PowerampLibrary(private val context: Context) {
         try {
             @Suppress("DEPRECATION")
             context.packageManager.getPackageInfo(PowerampContract.PACKAGE, 0)
-            return if (Protocol.browsing(request.action)) page(request, owner) else play(request)
+            return when {
+                request.action == Protocol.Action.CURRENT_ALBUM -> currentAlbum(request)
+                Protocol.browsing(request.action) -> page(request, owner)
+                else -> play(request)
+            }
         } catch (_: PackageManager.NameNotFoundException) {
             return Protocol.Result(request, Protocol.Stage.UNAVAILABLE)
         } catch (_: SecurityException) {
@@ -127,6 +131,22 @@ class PowerampLibrary(private val context: Context) {
         query("albums/$albumId/files", arrayOf("folder_files._id"),
             if (trackId > 0) "folder_files._id=?" else null,
             if (trackId > 0) arrayOf(trackId.toString()) else null, limit = 1) { it.moveToFirst() }
+
+    /** realId é o _id em folder_files da faixa atual, informado pelo próprio Poweramp. */
+    private fun currentAlbum(request: Protocol.Request): Protocol.Result {
+        val realId = PowerampRepository.readArtReference(context).realId
+        if (realId <= 0) return Protocol.Result(request, Protocol.Stage.NOT_FOUND)
+        val albumId = query("files", arrayOf("folder_files.album_id"), "folder_files._id=?",
+            arrayOf(realId.toString()), limit = 1) { if (it.moveToFirst() && !it.isNull(0)) it.getLong(0) else 0L }
+        if (albumId <= 0 || !containsTrack(albumId, realId)) return Protocol.Result(request, Protocol.Stage.NOT_FOUND)
+        val (title, artistId) = query("albums", arrayOf("albums._id", "album", "albums.album_artist_id"),
+            "albums._id=?", arrayOf(albumId.toString()), limit = 1) {
+            if (it.moveToFirst()) it.getString(1).orEmpty() to it.getLong(2) else null
+        } ?: return Protocol.Result(request, Protocol.Stage.NOT_FOUND)
+        val artist = if (artistId > 0) artistNames(listOf(artistId))[artistId] else null
+        return Protocol.Result(request, Protocol.Stage.PAGE,
+            listOf(Protocol.Item(albumId, Protocol.text(title), Protocol.text(artist))))
+    }
 
     /** A primeira faixa real do álbum fornece a capa pela API pública. */
     fun albumArt(albumId: Long): ByteArray? {

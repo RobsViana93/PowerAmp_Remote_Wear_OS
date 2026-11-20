@@ -80,6 +80,7 @@ Remote</string>
     <string name="player_stopped">Último informe: parado</string>
     <string name="listening_time">Hoje %1$s · Semana %2$s · Mês %3$s</string>
     <string name="listening_history">Histórico de escuta</string>
+    <string name="open_current_album">Abrir álbum atual</string>
     <string name="listening_waiting">Aguardando dados do celular</string>
     <string name="listening_range_day">Dia</string>
     <string name="listening_range_week">Semana</string>

@@ -3,6 +3,7 @@ package com.powerampremote.wear.presentation
 import androidx.compose.foundation.Canvas
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -60,7 +61,7 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
     BackHandler(enabled = showDetails || showControls || showEqualizer || showLibrary || showPresets || showHistory || seeking) {
         when { showPresets -> { showPresets = false; onPresets(PresetIntent.Close) }
             showHistory -> showHistory = false; showDetails -> showDetails = false; showControls -> showControls = false
-            showLibrary -> if (state.library.album != null) onLibrary(LibraryIntent.Albums)
+            showLibrary -> if (state.library.album != null && state.library.albums != null) onLibrary(LibraryIntent.Albums)
                 else { showLibrary = false; onLibrary(LibraryIntent.Close) }
             showEqualizer -> showEqualizer = false; else -> seeking = false }
     }
@@ -70,7 +71,7 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
     }
     if (showLibrary) {
         LibraryScreen(state, onLibrary, onVisibleAlbumArt,
-            onClose = { if (state.library.album != null) onLibrary(LibraryIntent.Albums)
+            onClose = { if (state.library.album != null && state.library.albums != null) onLibrary(LibraryIntent.Albums)
                 else { showLibrary = false; onLibrary(LibraryIntent.Close) } },
             onPlayer = { showLibrary = false; onLibrary(LibraryIntent.Close) })
         return
@@ -117,7 +118,11 @@ internal fun NowPlayingScreen(state: CommunicationState, onCommand: (PlayerProto
                 color = Color.White, textAlign = TextAlign.Center, modifier = Modifier.weight(1f),
                 maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
-        Row(Modifier.fillMaxWidth().padding(vertical = 3.dp),
+        val canOpenAlbum = matches && enabled && state.libraryAvailable
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+            .clickable(enabled = canOpenAlbum, onClickLabel = stringResource(R.string.open_current_album)) {
+                showLibrary = true; onLibrary(LibraryIntent.CurrentAlbum)
+            }.padding(vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             val cover = state.artwork
             if (cover != null && matches) {

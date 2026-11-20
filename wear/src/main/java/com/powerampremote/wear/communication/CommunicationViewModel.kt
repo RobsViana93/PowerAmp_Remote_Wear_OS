@@ -537,6 +537,7 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
             return
         }
         if (mutableState.value.busy) return
+        if (intent == LibraryIntent.CurrentAlbum) { openCurrentAlbum(); return }
         if (intent == LibraryIntent.Open || intent == LibraryIntent.Refresh) {
             albumArtJob?.cancel(); pendingAlbumArt = null; albumArtCache.clear(); missingAlbumArt.clear()
             mutableState.update { it.copy(albumArt = emptyMap()) }
@@ -614,6 +615,42 @@ class CommunicationViewModel(application: Application) : AndroidViewModel(applic
                 pendingLibrary = null
                 mutableState.update { it.copy(busy = false) }
             }
+        }
+    }
+
+    private fun openCurrentAlbum() {
+        albumArtJob?.cancel(); pendingAlbumArt = null; albumArtCache.clear(); missingAlbumArt.clear(); visibleAlbumIds = emptyList()
+        albumCursor = ""; trackCursor = ""; albumHistory = emptyList(); trackHistory = emptyList()
+        mutableState.update { it.copy(albumArt = emptyMap(), library = LibraryState(), busy = true) }
+        val request = LibraryProtocol.Request(UUID.randomUUID().toString(), LibraryProtocol.Action.CURRENT_ALBUM)
+        val owner = selectedPhoneId
+        libraryJob = viewModelScope.launch {
+            var album: LibraryProtocol.Item? = null
+            try {
+                withTimeout(10_000) {
+                    check(ensureListeners())
+                    val phone = queryPhone()
+                    check(phone != null && mutableState.value.libraryAvailable)
+                    check(PhoneSession.canSend(owner, phone.id, false))
+                    val waiting = PendingLibrary(request, phone.id, CompletableDeferred())
+                    pendingLibrary = waiting
+                    messages.sendMessage(phone.id, LibraryProtocol.PATH, LibraryProtocol.encode(request)).await()
+                    val result = waiting.result.await()
+                    if (selectedPhoneId == phone.id && result.stage == LibraryProtocol.Stage.PAGE) album = result.items.single()
+                }
+            } catch (cancelled: CancellationException) {
+                if (cancelled !is TimeoutCancellationException) throw cancelled
+            } catch (_: Exception) {
+            } finally {
+                pendingLibrary = null
+                mutableState.update { it.copy(busy = false) }
+            }
+            val found = album
+            if (found != null) {
+                mutableState.update { it.copy(library = it.library.copy(album = found, tracks = null, stage = null,
+                    failed = false, canGoPrevious = false)) }
+                libraryAction(LibraryIntent.Refresh)
+            } else libraryAction(LibraryIntent.Open)
         }
     }
 
